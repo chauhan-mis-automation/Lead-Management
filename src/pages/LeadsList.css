@@ -83,6 +83,12 @@
   background: var(--accent-dim);
 }
 
+.icon-btn.danger:hover {
+  border-color: var(--warn);
+  color: var(--warn);
+  background: var(--warn-dim);
+}
+
 .text-input:focus-visible {
   outline: none;
   border-color: var(--accent);

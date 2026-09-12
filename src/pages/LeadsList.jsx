@@ -64,6 +64,20 @@ export default function LeadsList() {
     if (isManager) loadUsers()
   }, [isManager])
 
+  async function handleDelete(lead) {
+    const confirmed = window.confirm(
+      `Delete lead "${lead.lead_name}"? This will also remove its call/follow-up history. This cannot be undone.`
+    )
+    if (!confirmed) return
+
+    const { error: deleteError } = await supabase.from('leads').delete().eq('id', lead.id)
+    if (!deleteError) {
+      setLeads((prev) => prev.filter((l) => l.id !== lead.id))
+    } else {
+      alert('Could not delete lead: ' + deleteError.message)
+    }
+  }
+
   const filteredLeads = leads.filter((l) => {
     if (!search.trim()) return true
     const q = search.toLowerCase()
@@ -178,6 +192,15 @@ export default function LeadsList() {
                             onClick={(e) => { e.stopPropagation(); setEditingLead(lead) }}
                           >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 20h4L18.5 9.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 15.5V20Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/></svg>
+                          </button>
+                        )}
+                        {role === 'admin' && (
+                          <button
+                            className="icon-btn danger"
+                            title="Delete lead"
+                            onClick={(e) => { e.stopPropagation(); handleDelete(lead) }}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>
                           </button>
                         )}
                       </div>

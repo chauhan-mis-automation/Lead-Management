@@ -1,0 +1,49 @@
+:root {
+  --bg: #F5F7FB;
+  --surface: #FFFFFF;
+  --surface-raised: #FFFFFF;
+  --surface-muted: #EDF1F9;
+  --line: #E1E6F2;
+  --text-primary: #171B2E;
+  --text-secondary: #6C7390;
+  --accent: #0EA99A;
+  --accent-dim: rgba(14, 169, 154, 0.12);
+  --accent-contrast: #FFFFFF;
+  --warn: #E5484D;
+  --warn-dim: rgba(229, 72, 77, 0.10);
+  --shadow-card: 0 1px 2px rgba(23, 27, 46, 0.04), 0 8px 24px rgba(23, 27, 46, 0.06);
+  --font-display: 'Sora', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

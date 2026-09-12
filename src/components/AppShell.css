@@ -1,0 +1,308 @@
+.shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ---------- Mobile top bar (hidden on desktop) ---------- */
+
+.shell-topbar {
+  display: none;
+}
+
+.hamburger-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.hamburger-btn span {
+  display: block;
+  width: 16px;
+  height: 2px;
+  background: var(--text-primary);
+  border-radius: 2px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.hamburger-btn:active span {
+  background: var(--accent);
+}
+
+.shell-topbar-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.shell-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.shell-topbar-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ---------- Overlay (mobile only) ---------- */
+
+.shell-overlay {
+  display: none;
+}
+
+/* ---------- Sidebar / drawer ---------- */
+
+.shell-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--surface-muted);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.shell-brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 0 8px;
+  margin-bottom: 28px;
+}
+
+.shell-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.shell-brand-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.3;
+  padding-top: 2px;
+  flex: 1;
+}
+
+.drawer-close {
+  display: none;
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+}
+
+.drawer-close:hover {
+  color: var(--text-primary);
+  background: var(--surface-raised);
+}
+
+.shell-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.shell-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.shell-nav-icon {
+  width: 18px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.shell-nav-item:hover {
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  transform: translateX(2px);
+}
+
+.shell-nav-item.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.shell-user {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.shell-user-avatar {
+  display: none;
+}
+
+.shell-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  padding: 0 4px;
+}
+
+.shell-user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shell-user-role {
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.shell-logout {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--text-secondary);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.shell-logout:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.shell-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.shell-content {
+  padding: 32px 40px;
+}
+
+/* ---------- Mobile layout ---------- */
+
+@media (max-width: 860px) {
+
+
+  .shell {
+    flex-direction: column;
+  }
+
+  .shell-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+
+  .shell-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 12, 24, 0.55);
+    backdrop-filter: blur(1px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    z-index: 30;
+  }
+
+  .shell-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .shell-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 82%;
+    max-width: 300px;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.25, 0.8, 0.35, 1);
+    z-index: 40;
+    box-shadow: 12px 0 32px rgba(0, 0, 0, 0.35);
+  }
+
+  .shell-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .drawer-close {
+    display: inline-flex;
+  }
+
+  .shell-user-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  .shell-content {
+    padding: 20px;
+  }
+}

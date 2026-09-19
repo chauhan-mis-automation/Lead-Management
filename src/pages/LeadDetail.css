@@ -102,6 +102,46 @@
   grid-column: 1 / -1;
 }
 
+.action-type-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.action-type-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.action-type-btn.active {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.action-type-chip {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.action-location-note {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
 .field label {
   font-size: 13px;
   color: var(--text-secondary);
@@ -170,6 +210,59 @@ textarea.text-input {
   margin-bottom: 12px;
 }
 
+.quote-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.quote-card-head h3 {
+  margin: 0;
+}
+
+.btn-ghost.small {
+  padding: 6px 12px;
+  font-size: 12px;
+  background: none;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-ghost.small:hover {
+  background: var(--accent-dim);
+}
+
+.lead-quotes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lead-quote-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.lead-quote-number {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.lead-quote-amount {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
 .form-error {
   background: var(--warn-dim);
   border: 1px solid rgba(229, 72, 77, 0.3);
@@ -219,6 +312,10 @@ textarea.text-input {
 
 .timeline-item.followup .timeline-dot {
   background: var(--accent);
+}
+
+.timeline-item.quotation .timeline-dot {
+  background: #9B7FE0;
 }
 
 .timeline-body {

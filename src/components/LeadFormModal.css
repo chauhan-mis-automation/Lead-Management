@@ -94,6 +94,33 @@ select.text-input {
   cursor: not-allowed;
 }
 
+.password-field-wrap {
+  position: relative;
+}
+
+.password-field-wrap .text-input {
+  padding-right: 40px;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px;
+}
+
+.password-success-note {
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
 .modal-hint {
   font-size: 12px;
   color: var(--text-secondary);

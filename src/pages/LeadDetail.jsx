@@ -2,7 +2,10 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import { supabase } from '../supabaseClient'
-import { STATUS_OPTIONS, sourceLabel, statusMeta } from '../lib/constants'
+import { STATUS_OPTIONS, sourceLabel, statusMeta, ACTION_TYPE_OPTIONS, actionTypeMeta, quotationStatusMeta } from '../lib/constants'
+import QuotationFormModal from '../components/QuotationFormModal'
+import Swal from 'sweetalert2'
+import 'sweetalert2/dist/sweetalert2.min.css'
 import './LeadDetail.css'
 
 const WON = 'won_order'
@@ -17,6 +20,8 @@ export default function LeadDetail() {
   const [lead, setLead] = useState(null)
   const [users, setUsers] = useState([])
   const [timeline, setTimeline] = useState([])
+  const [quotations, setQuotations] = useState([])
+  const [showQuoteForm, setShowQuoteForm] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -26,6 +31,8 @@ export default function LeadDetail() {
   const [followRemark, setFollowRemark] = useState('')
   const [followDate, setFollowDate] = useState('')
   const [followStatus, setFollowStatus] = useState('')
+  const [actionType, setActionType] = useState('call')
+  const [actionLocation, setActionLocation] = useState('')
   const [saving, setSaving] = useState(false)
 
   // order closure fields
@@ -55,7 +62,7 @@ export default function LeadDetail() {
   }, [id])
 
   const loadTimeline = useCallback(async () => {
-    const [callsRes, followsRes] = await Promise.all([
+    const [callsRes, followsRes, quotesRes] = await Promise.all([
       supabase
         .from('call_history')
         .select('*, created_by_profile:profiles!call_history_created_by_fkey(full_name)')
@@ -65,8 +72,15 @@ export default function LeadDetail() {
         .from('followup_history')
         .select('*, created_by_profile:profiles!followup_history_created_by_fkey(full_name)')
         .eq('lead_id', id)
-        .order('followup_date', { ascending: false })
+        .order('followup_date', { ascending: false }),
+      supabase
+        .from('quotations')
+        .select('*')
+        .eq('lead_id', id)
+        .order('created_at', { ascending: false })
     ])
+
+    setQuotations(quotesRes.data || [])
 
     const calls = (callsRes.data || []).map((c) => ({
       type: 'call',
@@ -80,10 +94,19 @@ export default function LeadDetail() {
       date: f.followup_date,
       remarks: f.remarks,
       status: f.status,
+      actionType: f.action_type,
+      location: f.location,
       by: f.created_by_profile?.full_name
     }))
 
-    const merged = [...calls, ...follows].sort((a, b) => new Date(b.date) - new Date(a.date))
+    const quoteItems = (quotesRes.data || []).map((q) => ({
+      type: 'quotation',
+      date: q.created_at,
+      remarks: `Quotation ${q.quotation_number}: ₹${Number(q.amount || 0).toLocaleString('en-IN')}`,
+      status: q.status
+    }))
+
+    const merged = [...calls, ...follows, ...quoteItems].sort((a, b) => new Date(b.date) - new Date(a.date))
     setTimeline(merged)
   }, [id])
 
@@ -158,20 +181,22 @@ export default function LeadDetail() {
       lead_id: id,
       remarks: followRemark.trim(),
       status: followStatus || lead.status,
+      action_type: actionType,
+      location: actionLocation.trim() || null,
       created_by: session?.user?.id
     })
 
-    const leadUpdate = {}
+    const leadUpdate = { next_action_type: actionType, next_action_location: actionLocation.trim() || null }
     if (followDate) leadUpdate.next_followup_date = new Date(followDate).toISOString()
     if (followStatus) leadUpdate.status = followStatus
 
-    if (Object.keys(leadUpdate).length > 0) {
-      await supabase.from('leads').update(leadUpdate).eq('id', id)
-    }
+    await supabase.from('leads').update(leadUpdate).eq('id', id)
 
     setFollowRemark('')
     setFollowDate('')
     setFollowStatus('')
+    setActionType('call')
+    setActionLocation('')
     await loadLead()
     await loadTimeline()
     setSaving(false)
@@ -185,9 +210,50 @@ export default function LeadDetail() {
       ? { order_value: orderValue || null, closing_date: closingDate || null, project_details: projectDetails || null }
       : { loss_reason: lossReason || null, competitor_name: competitorName || null }
 
-    await supabase.from('leads').update(payload).eq('id', id)
-    await loadLead()
+    const { error: closureError } = await supabase.from('leads').update(payload).eq('id', id)
+
+    // Keep the auto-created Order record (from the Won trigger) in sync with these details
+    if (!closureError && lead.status === WON) {
+      await supabase
+        .from('orders')
+        .update({
+          order_value: orderValue || null,
+          order_date: closingDate || null,
+          project_details: projectDetails || null
+        })
+        .eq('lead_id', id)
+    }
+
     setSaving(false)
+
+    if (closureError) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Could not save',
+        text: closureError.message,
+        confirmButtonColor: '#0EA99A'
+      })
+      return
+    }
+
+    await loadLead()
+
+    // Clear the form fields after a successful save (loadLead would otherwise refill them)
+    if (lead.status === WON) {
+      setOrderValue('')
+      setClosingDate('')
+      setProjectDetails('')
+    } else {
+      setLossReason('')
+      setCompetitorName('')
+    }
+
+    Swal.fire({
+      icon: 'success',
+      title: lead.status === WON ? 'Order details saved!' : 'Loss details saved!',
+      timer: 1500,
+      showConfirmButton: false
+    })
   }
 
   if (loading) return <p className="lead-detail-loading">Loading lead…</p>
@@ -218,9 +284,16 @@ export default function LeadDetail() {
             <dt>Created</dt><dd>{new Date(lead.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</dd>
             <dt>Next Follow-up</dt>
             <dd>
-              {lead.next_followup_date
-                ? new Date(lead.next_followup_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
-                : '—'}
+              {lead.next_followup_date ? (
+                <>
+                  <span className="action-type-chip">
+                    {actionTypeMeta(lead.next_action_type).icon} {actionTypeMeta(lead.next_action_type).label}
+                  </span>
+                  {' — '}
+                  {new Date(lead.next_followup_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  {lead.next_action_location && <div className="action-location-note">{lead.next_action_location}</div>}
+                </>
+              ) : '—'}
             </dd>
           </dl>
         </div>
@@ -313,6 +386,32 @@ export default function LeadDetail() {
             <textarea className="text-input" rows={3} value={followRemark} onChange={(e) => setFollowRemark(e.target.value)} placeholder="Follow-up notes…" required />
           </div>
           <div className="field">
+            <label>Next Action Type</label>
+            <div className="action-type-toggle">
+              {ACTION_TYPE_OPTIONS.map((a) => (
+                <button
+                  type="button"
+                  key={a.value}
+                  className={'action-type-btn' + (actionType === a.value ? ' active' : '')}
+                  onClick={() => setActionType(a.value)}
+                >
+                  <span>{a.icon}</span>{a.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {actionType !== 'call' && (
+            <div className="field">
+              <label>{actionType === 'meeting' ? 'Location / Meeting Link' : 'Visit Address'}</label>
+              <input
+                className="text-input"
+                value={actionLocation}
+                onChange={(e) => setActionLocation(e.target.value)}
+                placeholder={actionType === 'meeting' ? 'Office address or video call link' : 'Site address'}
+              />
+            </div>
+          )}
+          <div className="field">
             <label>Next Follow-up Date</label>
             <input className="text-input" type="datetime-local" value={followDate} onChange={(e) => setFollowDate(e.target.value)} />
           </div>
@@ -330,6 +429,33 @@ export default function LeadDetail() {
       </div>
 
       <div className="info-card">
+        <div className="quote-card-head">
+          <h3>Quotations</h3>
+          {['admin', 'subadmin', 'sales', 'bde'].includes(profile?.role) && (
+            <button type="button" className="btn-ghost small" onClick={() => setShowQuoteForm(true)}>+ New Quotation</button>
+          )}
+        </div>
+        {quotations.length === 0 ? (
+          <p className="static-value">No quotations yet for this lead.</p>
+        ) : (
+          <div className="lead-quotes-list">
+            {quotations.map((q) => {
+              const meta = quotationStatusMeta(q.status)
+              return (
+                <div key={q.id} className="lead-quote-item">
+                  <div>
+                    <div className="lead-quote-number">{q.quotation_number}</div>
+                    <div className="lead-quote-amount">₹{Number(q.amount || 0).toLocaleString('en-IN')}</div>
+                  </div>
+                  <span className="status-badge" style={{ '--badge-color': meta.color }}>{meta.label}</span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="info-card">
         <h3>Timeline</h3>
         {timeline.length === 0 ? (
           <p className="static-value">No activity logged yet.</p>
@@ -340,7 +466,13 @@ export default function LeadDetail() {
                 <div className="timeline-dot" />
                 <div className="timeline-body">
                   <div className="timeline-top">
-                    <span className="timeline-type">{item.type === 'call' ? 'Call' : 'Follow-up'}</span>
+                    <span className="timeline-type">
+                      {item.type === 'call'
+                        ? 'Call'
+                        : item.type === 'quotation'
+                        ? 'Quotation'
+                        : `Follow-up${item.actionType && item.actionType !== 'call' ? ' · ' + actionTypeMeta(item.actionType).label : ''}`}
+                    </span>
                     <span className="timeline-date">
                       {new Date(item.date).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </span>
@@ -348,7 +480,8 @@ export default function LeadDetail() {
                   <p className="timeline-remark">{item.remarks}</p>
                   <div className="timeline-meta">
                     {item.duration ? <span>{Math.round(item.duration / 60)} min</span> : null}
-                    {item.status ? <span>Status: {statusMeta(item.status).label}</span> : null}
+                    {item.status ? <span>Status: {item.type === 'quotation' ? quotationStatusMeta(item.status).label : statusMeta(item.status).label}</span> : null}
+                    {item.location ? <span>📍 {item.location}</span> : null}
                     {item.by ? <span>by {item.by}</span> : null}
                   </div>
                 </div>
@@ -357,6 +490,15 @@ export default function LeadDetail() {
           </ul>
         )}
       </div>
+
+      {showQuoteForm && (
+        <QuotationFormModal
+          presetLeadId={id}
+          currentUserId={session?.user?.id}
+          onClose={() => setShowQuoteForm(false)}
+          onSaved={() => { setShowQuoteForm(false); loadTimeline() }}
+        />
+      )}
     </div>
   )
 }

@@ -1,0 +1,77 @@
+.stat-detail-card {
+  max-width: 480px;
+}
+
+.stat-detail-empty {
+  color: var(--text-secondary);
+  font-size: 14px;
+  padding: 20px 0;
+  text-align: center;
+}
+
+.stat-detail-list {
+  max-height: 420px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.stat-detail-row:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+
+.stat-detail-name {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.stat-detail-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.stat-detail-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.stat-detail-value {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.stat-detail-date {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.status-badge {
+  display: inline-block;
+  background: color-mix(in srgb, var(--badge-color) 16%, transparent);
+  color: var(--badge-color);
+  border: 1px solid color-mix(in srgb, var(--badge-color) 40%, transparent);
+  border-radius: 100px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}

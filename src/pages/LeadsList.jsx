@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import { supabase } from '../supabaseClient'
 import { STATUS_OPTIONS, SOURCE_OPTIONS, statusMeta, sourceLabel } from '../lib/constants'
@@ -9,6 +9,7 @@ import './LeadsList.css'
 
 export default function LeadsList() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { profile, session } = useAuth()
   const role = profile?.role
   const isManager = ['admin', 'subadmin'].includes(role)
@@ -20,9 +21,14 @@ export default function LeadsList() {
   const [showForm, setShowForm] = useState(false)
   const [editingLead, setEditingLead] = useState(null)
 
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(searchParams.get('search') || '')
   const [statusFilter, setStatusFilter] = useState('')
   const [sourceFilter, setSourceFilter] = useState('')
+
+  useEffect(() => {
+    const q = searchParams.get('search')
+    if (q !== null) setSearch(q)
+  }, [searchParams])
 
   const loadLeads = useCallback(async () => {
     setLoading(true)

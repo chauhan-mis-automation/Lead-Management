@@ -1,12 +1,37 @@
 .shell {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
+}
+
+.shell-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
 }
 
 /* ---------- Mobile top bar (hidden on desktop) ---------- */
 
 .shell-topbar {
   display: none;
+}
+
+.mobile-back-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.mobile-back-btn:active {
+  color: var(--accent);
 }
 
 .hamburger-btn {
@@ -80,8 +105,9 @@
   flex-direction: column;
   padding: 24px 16px;
   position: sticky;
-  top: 0;
-  height: 100vh;
+  top: var(--header-height, 65px);
+  height: calc(100vh - var(--header-height, 65px));
+  overflow-y: auto;
 }
 
 .shell-brand {
@@ -90,6 +116,16 @@
   gap: 10px;
   padding: 0 8px;
   margin-bottom: 28px;
+}
+
+@media (min-width: 861px) {
+  .shell-brand {
+    display: none;
+  }
+
+  .shell-nav {
+    margin-top: 4px;
+  }
 }
 
 .shell-logo {
@@ -215,6 +251,39 @@
 .shell-logout:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+.shell-help-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--accent-dim);
+  border: 1px solid rgba(14, 169, 154, 0.3);
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 12px;
+}
+
+.shell-help-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.shell-help-title {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.shell-help-sub {
+  font-size: 11px;
+  color: var(--text-secondary);
 }
 
 .shell-main {

@@ -163,6 +163,7 @@ export default function Users() {
       {editingUser && (
         <EditUserModal
           user={editingUser}
+          accessToken={session?.access_token}
           onClose={() => setEditingUser(null)}
           onSaved={(updated) => {
             setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)))

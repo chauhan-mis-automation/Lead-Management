@@ -7,6 +7,9 @@ import LeadDetail from './pages/LeadDetail'
 import CalendarPage from './pages/Calendar'
 import BulkUpload from './pages/BulkUpload'
 import Reports from './pages/Reports'
+import Orders from './pages/Orders'
+import Customers from './pages/Customers'
+import Quotations from './pages/Quotations'
 import Users from './pages/Users'
 import AppShell from './components/AppShell'
 
@@ -56,6 +59,9 @@ function AppRoutes() {
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/users" element={<Users />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/orders" element={<Orders />} />
+        <Route path="/customers" element={<Customers />} />
+        <Route path="/quotations" element={<Quotations />} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

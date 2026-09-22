@@ -19,7 +19,7 @@ const NAV_ITEMS = [
 ]
 
 export default function AppShell() {
-  const { profile, session } = useAuth()
+  const { profile, session, signOut } = useAuth()
   const role = profile?.role
   const location = useLocation()
   const navigate = useNavigate()
@@ -102,6 +102,19 @@ export default function AppShell() {
               <div className="shell-help-title">Need Help?</div>
               <div className="shell-help-sub">Our team is always here.</div>
             </div>
+          </div>
+
+          <div className="shell-mobile-account">
+            <div className="shell-mobile-account-info">
+              <span className="shell-mobile-avatar">
+                {(profile?.full_name || session?.user?.email || '?').charAt(0).toUpperCase()}
+              </span>
+              <div>
+                <div className="shell-mobile-name">{profile?.full_name || session?.user?.email}</div>
+                <div className="shell-mobile-role">{profile?.role}</div>
+              </div>
+            </div>
+            <button className="shell-mobile-logout" onClick={signOut}>Logout</button>
           </div>
         </aside>
 

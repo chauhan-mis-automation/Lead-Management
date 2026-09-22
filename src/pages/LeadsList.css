@@ -19,6 +19,36 @@
   margin: 0;
 }
 
+.task-filter-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--accent-dim);
+  border: 1px solid rgba(14, 169, 154, 0.3);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+
+.task-filter-banner strong {
+  color: var(--accent);
+}
+
+.task-filter-banner button {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.task-filter-banner button:hover {
+  color: var(--warn);
+}
+
 .leads-header-actions {
   display: flex;
   gap: 10px;

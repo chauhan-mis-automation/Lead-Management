@@ -33,16 +33,16 @@ export default function TodaysTasks() {
   }, [isManager, session])
 
   const items = [
-    { label: 'Follow-ups Due Today', value: counts.dueToday, color: '#5B8DEF' },
-    { label: 'Overdue Follow-ups', value: counts.overdue, color: '#E5484D' },
-    { label: 'Proposals to Send', value: counts.proposals, color: '#9B7FE0' }
+    { label: 'Follow-ups Due Today', value: counts.dueToday, color: '#5B8DEF', to: '/leads?task=due_today' },
+    { label: 'Overdue Follow-ups', value: counts.overdue, color: '#E5484D', to: '/leads?task=overdue' },
+    { label: 'Proposals to Send', value: counts.proposals, color: '#9B7FE0', to: '/leads?status=proposal_sent' }
   ]
 
   return (
     <div className="tasks-widget">
       <div className="tasks-widget-title">Today's Tasks</div>
       {items.map((item) => (
-        <Link to="/leads" key={item.label} className="tasks-widget-item">
+        <Link to={item.to} key={item.label} className="tasks-widget-item">
           <span className="tasks-widget-dot" style={{ background: item.color }} />
           <span className="tasks-widget-value">{item.value}</span>
           <span className="tasks-widget-label">{item.label}</span>

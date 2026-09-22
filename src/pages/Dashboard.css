@@ -1,3 +1,8 @@
+@keyframes dashFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .dash-top {
   margin-bottom: 20px;
 }
@@ -35,7 +40,15 @@ h1 {
   font-family: inherit;
   width: 100%;
   transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+  animation: dashFadeIn 0.4s ease both;
 }
+
+.stat-grid > .stat-card:nth-child(1) { animation-delay: 0.02s; }
+.stat-grid > .stat-card:nth-child(2) { animation-delay: 0.06s; }
+.stat-grid > .stat-card:nth-child(3) { animation-delay: 0.10s; }
+.stat-grid > .stat-card:nth-child(4) { animation-delay: 0.14s; }
+.stat-grid > .stat-card:nth-child(5) { animation-delay: 0.18s; }
+.stat-grid > .stat-card:nth-child(6) { animation-delay: 0.22s; }
 
 .stat-card:hover {
   transform: translateY(-2px);
@@ -89,6 +102,8 @@ h1 {
   padding: 18px;
   box-shadow: var(--shadow-card);
   margin-bottom: 16px;
+  animation: dashFadeIn 0.45s ease both;
+  animation-delay: 0.1s;
 }
 
 .dash-row-2col .panel-card,
@@ -162,8 +177,19 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 320px;
+  flex: 1;
+  min-height: 90px;
+  max-height: 260px;
   overflow-y: auto;
+}
+
+.pipeline-col-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.pipeline-col-body::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 10px;
 }
 
 .pipeline-card {
@@ -178,6 +204,7 @@ h1 {
   cursor: pointer;
   font-family: inherit;
   transition: box-shadow 0.12s ease, transform 0.12s ease;
+  animation: dashFadeIn 0.3s ease both;
 }
 
 .pipeline-card:hover {
@@ -210,12 +237,21 @@ h1 {
   margin-top: 2px;
 }
 
-.pipeline-more,
-.pipeline-empty {
+.pipeline-more {
   font-size: 11px;
   color: var(--text-secondary);
   text-align: center;
   padding: 6px 0;
+}
+
+.pipeline-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+  opacity: 0.7;
 }
 
 .mini-cal-weekdays {

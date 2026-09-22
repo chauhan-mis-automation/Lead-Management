@@ -118,6 +118,64 @@
   margin-bottom: 28px;
 }
 
+.shell-mobile-account {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.shell-mobile-account-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.shell-mobile-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.shell-mobile-name {
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 130px;
+}
+
+.shell-mobile-role {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: capitalize;
+}
+
+.shell-mobile-logout {
+  background: var(--warn-dim);
+  border: 1px solid rgba(229, 72, 77, 0.3);
+  color: var(--warn);
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 @media (min-width: 861px) {
   .shell-brand {
     display: none;
@@ -301,6 +359,9 @@
 
 @media (max-width: 860px) {
 
+  .shell-mobile-account {
+    display: flex;
+  }
 
   .shell {
     flex-direction: column;

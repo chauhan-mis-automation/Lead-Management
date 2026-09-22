@@ -22,12 +22,17 @@ export default function LeadsList() {
   const [editingLead, setEditingLead] = useState(null)
 
   const [search, setSearch] = useState(searchParams.get('search') || '')
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '')
   const [sourceFilter, setSourceFilter] = useState('')
+  const [taskFilter, setTaskFilter] = useState(searchParams.get('task') || '')
 
   useEffect(() => {
     const q = searchParams.get('search')
     if (q !== null) setSearch(q)
+    const s = searchParams.get('status')
+    if (s !== null) setStatusFilter(s)
+    const t = searchParams.get('task')
+    setTaskFilter(t || '')
   }, [searchParams])
 
   const loadLeads = useCallback(async () => {
@@ -84,15 +89,38 @@ export default function LeadsList() {
     }
   }
 
-  const filteredLeads = leads.filter((l) => {
-    if (!search.trim()) return true
-    const q = search.toLowerCase()
-    return (
-      l.lead_name?.toLowerCase().includes(q) ||
-      l.mobile?.toLowerCase().includes(q) ||
-      l.company?.toLowerCase().includes(q)
-    )
-  })
+  const today = new Date().toISOString().slice(0, 10)
+
+  const filteredLeads = leads
+    .filter((l) => {
+      if (!search.trim()) return true
+      const q = search.toLowerCase()
+      return (
+        l.lead_name?.toLowerCase().includes(q) ||
+        l.mobile?.toLowerCase().includes(q) ||
+        l.company?.toLowerCase().includes(q)
+      )
+    })
+    .filter((l) => {
+      if (!taskFilter) return true
+      const isOpen = !['won_order', 'lost_order'].includes(l.status)
+      if (!l.next_followup_date || !isOpen) return false
+      const followDate = l.next_followup_date.slice(0, 10)
+      if (taskFilter === 'due_today') return followDate === today
+      if (taskFilter === 'overdue') return followDate < today
+      return true
+    })
+
+  const taskFilterLabel = taskFilter === 'due_today'
+    ? 'Follow-ups Due Today'
+    : taskFilter === 'overdue'
+    ? 'Overdue Follow-ups'
+    : ''
+
+  function clearTaskFilter() {
+    setTaskFilter('')
+    navigate('/leads', { replace: true })
+  }
 
   return (
     <div>
@@ -110,6 +138,13 @@ export default function LeadsList() {
           </div>
         )}
       </div>
+
+      {taskFilterLabel && (
+        <div className="task-filter-banner">
+          <span>Showing: <strong>{taskFilterLabel}</strong></span>
+          <button onClick={clearTaskFilter}>Clear filter ✕</button>
+        </div>
+      )}
 
       <div className="leads-filters">
         <input

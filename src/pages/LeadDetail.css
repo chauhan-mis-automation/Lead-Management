@@ -98,8 +98,108 @@
   margin-bottom: 14px;
 }
 
+.tel-link {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
 .field.wide {
   grid-column: 1 / -1;
+}
+
+.tel-link:hover {
+  text-decoration: underline;
+}
+
+.call-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.call-card-head h3 {
+  margin: 0;
+}
+
+.call-now-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  text-decoration: none;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.call-now-btn:hover {
+  opacity: 0.9;
+}
+
+.file-input {
+  width: 100%;
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: var(--bg);
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.file-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-radius: 100px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.file-chip button {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0;
+}
+
+.timeline-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.timeline-attachment-link {
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border-radius: 100px;
+  padding: 3px 10px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.timeline-attachment-link:hover {
+  text-decoration: underline;
 }
 
 .action-type-toggle {

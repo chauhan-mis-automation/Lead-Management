@@ -40,9 +40,9 @@ export default function TopHeader() {
       </button>
 
       <div className="top-header-brand">
-        <img src={logo} alt="Chauhan MIS Automation Services" className="top-header-logo" />
+        <img src={logo} alt="Wavexa Lead Generation" className="top-header-logo" />
         <div>
-          <div className="top-header-title">Chauhan MIS <span>Automation Service</span></div>
+          <div className="top-header-title">Wavexa <span>Lead Generation</span></div>
           <div className="top-header-tagline">Lead to Order · Track · Follow Up · Convert</div>
         </div>
       </div>

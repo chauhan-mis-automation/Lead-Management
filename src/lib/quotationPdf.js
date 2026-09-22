@@ -10,7 +10,7 @@ export function generateQuotationPDF(quotation) {
   doc.setTextColor(255, 255, 255)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(16)
-  doc.text('Chauhan MIS Automation Services', 14, 15)
+  doc.text('Wavexa Lead Generation', 14, 15)
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(10)
   doc.text('Lead to Order · Track · Follow Up · Convert', 14, 22)
@@ -64,7 +64,7 @@ export function generateQuotationPDF(quotation) {
   // Footer
   doc.setFontSize(9)
   doc.setTextColor(120, 120, 120)
-  doc.text('This is a system-generated quotation from Chauhan MIS Automation Services.', 14, 285)
+  doc.text('This is a system-generated quotation from Wavexa Lead Generation.', 14, 285)
 
   doc.save(`${quotation.quotation_number}.pdf`)
 }

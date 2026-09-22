@@ -57,7 +57,7 @@ export default function Dashboard() {
   const loadDashboard = useCallback(async () => {
     setLoading(true)
 
-    let leadsQuery = supabase.from('leads').select('id, lead_name, company, status, source, assigned_to, next_followup_date, created_at')
+    let leadsQuery = supabase.from('leads').select('id, lead_name, company, mobile, status, source, assigned_to, next_followup_date, created_at')
     if (!isManager && session?.user?.id) leadsQuery = leadsQuery.eq('assigned_to', session.user.id)
 
     let ordersQuery = supabase
@@ -287,7 +287,11 @@ export default function Dashboard() {
                           {new Date(l.next_followup_date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
-                      <button className="call-btn" onClick={() => navigate(`/leads/${l.id}`)}>{aMeta.label}</button>
+                      {aMeta.value === 'call' && l.mobile ? (
+                        <a href={`tel:${l.mobile}`} className="call-btn">📞 Call</a>
+                      ) : (
+                        <button className="call-btn" onClick={() => navigate(`/leads/${l.id}`)}>{aMeta.label}</button>
+                      )}
                     </li>
                   )
                 })}

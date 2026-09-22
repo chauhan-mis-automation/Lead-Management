@@ -96,6 +96,9 @@
 }
 
 .quotes-table th {
+  background: var(--surface-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   text-align: left;
   padding: 13px 16px;
   color: var(--text-secondary);

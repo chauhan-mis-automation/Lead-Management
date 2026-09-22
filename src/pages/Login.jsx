@@ -70,8 +70,8 @@ export default function Login() {
     <div className="login-screen">
       <div className="pipeline-panel" aria-hidden="true">
         <div className="pipeline-brand">
-          <img className="brand-logo" src={logo} alt="Chauhan MIS Automation Services" />
-          <span className="pipeline-brand-name">Chauhan MIS Automation Services</span>
+          <img className="brand-logo" src={logo} alt="Wavexa Lead Generation" />
+          <span className="pipeline-brand-name">Wavexa Lead Generation</span>
         </div>
 
         <div className="pipeline-copy">
@@ -101,8 +101,8 @@ export default function Login() {
       <div className="form-panel">
         <div className="form-card">
           <div className="mobile-brand">
-            <img className="brand-logo" src={logo} alt="Chauhan MIS Automation Services" />
-            <span className="pipeline-brand-name">Chauhan MIS Automation Services</span>
+            <img className="brand-logo" src={logo} alt="Wavexa Lead Generation" />
+            <span className="pipeline-brand-name">Wavexa Lead Generation</span>
           </div>
 
           <h2>Sign in</h2>

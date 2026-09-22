@@ -200,7 +200,13 @@ export default function LeadsList() {
                       {lead.company && <div className="lead-company-cell">{lead.company}</div>}
                     </td>
                     <td>
-                      <div>{lead.mobile || '—'}</div>
+                      <div>
+                        {lead.mobile ? (
+                          <a href={`tel:${lead.mobile}`} className="tel-link" onClick={(e) => e.stopPropagation()}>
+                            📞 {lead.mobile}
+                          </a>
+                        ) : '—'}
+                      </div>
                       {lead.email && <div className="lead-email-cell">{lead.email}</div>}
                     </td>
                     <td>{sourceLabel(lead.source)}</td>

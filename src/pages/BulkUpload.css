@@ -120,6 +120,9 @@
 }
 
 .preview-table th {
+  background: var(--surface-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   position: sticky;
   top: 0;
   text-align: left;

@@ -133,6 +133,9 @@
 }
 
 .reports-table th {
+  background: var(--surface-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   text-align: left;
   padding: 8px 10px;
   color: var(--text-secondary);

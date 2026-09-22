@@ -74,8 +74,8 @@ export default function AppShell() {
       <div className="shell-body">
         <aside className={'shell-sidebar' + (menuOpen ? ' open' : '')}>
           <div className="shell-brand">
-            <img className="shell-logo" src={logo} alt="Chauhan MIS Automation Services" />
-            <span className="shell-brand-name">Chauhan MIS Automation Services</span>
+            <img className="shell-logo" src={logo} alt="Wavexa Lead Generation" />
+            <span className="shell-brand-name">Wavexa Lead Generation</span>
             <button className="drawer-close" onClick={() => setMenuOpen(false)} aria-label="Close menu">✕</button>
           </div>
 

@@ -28,6 +28,8 @@ export default function LeadDetail() {
   // quick-action form state
   const [callRemark, setCallRemark] = useState('')
   const [callDuration, setCallDuration] = useState('')
+  const [callFiles, setCallFiles] = useState([])
+  const [uploadingFiles, setUploadingFiles] = useState(false)
   const [followRemark, setFollowRemark] = useState('')
   const [followDate, setFollowDate] = useState('')
   const [followStatus, setFollowStatus] = useState('')
@@ -87,6 +89,7 @@ export default function LeadDetail() {
       date: c.call_date,
       remarks: c.remarks,
       duration: c.duration_seconds,
+      attachments: c.attachments || [],
       by: c.created_by_profile?.full_name
     }))
     const follows = (followsRes.data || []).map((f) => ({
@@ -160,14 +163,31 @@ export default function LeadDetail() {
     e.preventDefault()
     if (!callRemark.trim()) return
     setSaving(true)
+
+    let attachments = []
+    if (callFiles.length > 0) {
+      setUploadingFiles(true)
+      for (const file of callFiles) {
+        const path = `${id}/${Date.now()}-${file.name}`
+        const { error: uploadError } = await supabase.storage.from('call-recordings').upload(path, file)
+        if (!uploadError) {
+          const { data: urlData } = supabase.storage.from('call-recordings').getPublicUrl(path)
+          attachments.push({ name: file.name, url: urlData.publicUrl })
+        }
+      }
+      setUploadingFiles(false)
+    }
+
     await supabase.from('call_history').insert({
       lead_id: id,
       remarks: callRemark.trim(),
       duration_seconds: callDuration ? Number(callDuration) * 60 : null,
+      attachments,
       created_by: session?.user?.id
     })
     setCallRemark('')
     setCallDuration('')
+    setCallFiles([])
     await loadTimeline()
     setSaving(false)
   }
@@ -278,7 +298,12 @@ export default function LeadDetail() {
         <div className="info-card">
           <h3>Lead Info</h3>
           <dl>
-            <dt>Mobile</dt><dd>{lead.mobile || '—'}</dd>
+            <dt>Mobile</dt>
+            <dd>
+              {lead.mobile ? (
+                <a href={`tel:${lead.mobile}`} className="tel-link">📞 {lead.mobile}</a>
+              ) : '—'}
+            </dd>
             <dt>Email</dt><dd>{lead.email || '—'}</dd>
             <dt>Source</dt><dd>{sourceLabel(lead.source)}</dd>
             <dt>Created</dt><dd>{new Date(lead.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</dd>
@@ -367,7 +392,14 @@ export default function LeadDetail() {
 
       <div className="lead-detail-grid">
         <form className="info-card action-form" onSubmit={handleLogCall}>
-          <h3>Log a Call</h3>
+          <div className="call-card-head">
+            <h3>Log a Call</h3>
+            {lead.mobile && (
+              <a href={`tel:${lead.mobile}`} className="call-now-btn">
+                📞 Call {lead.mobile}
+              </a>
+            )}
+          </div>
           <div className="field">
             <label>Remarks</label>
             <textarea className="text-input" rows={3} value={callRemark} onChange={(e) => setCallRemark(e.target.value)} placeholder="What was discussed?" required />
@@ -376,7 +408,28 @@ export default function LeadDetail() {
             <label>Duration (minutes)</label>
             <input className="text-input" type="number" value={callDuration} onChange={(e) => setCallDuration(e.target.value)} />
           </div>
-          <button type="submit" className="btn-primary" disabled={saving}>Save Call Log</button>
+          <div className="field">
+            <label>Attach Recording / Files (optional)</label>
+            <input
+              type="file"
+              multiple
+              className="file-input"
+              onChange={(e) => setCallFiles(Array.from(e.target.files))}
+            />
+            {callFiles.length > 0 && (
+              <div className="file-chip-list">
+                {callFiles.map((f, i) => (
+                  <span key={i} className="file-chip">
+                    {f.name}
+                    <button type="button" onClick={() => setCallFiles((prev) => prev.filter((_, idx) => idx !== i))}>✕</button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+          <button type="submit" className="btn-primary" disabled={saving}>
+            {uploadingFiles ? 'Uploading files…' : saving ? 'Saving…' : 'Save Call Log'}
+          </button>
         </form>
 
         <form className="info-card action-form" onSubmit={handleAddFollowup}>
@@ -484,6 +537,15 @@ export default function LeadDetail() {
                     {item.location ? <span>📍 {item.location}</span> : null}
                     {item.by ? <span>by {item.by}</span> : null}
                   </div>
+                  {item.attachments && item.attachments.length > 0 && (
+                    <div className="timeline-attachments">
+                      {item.attachments.map((a, ai) => (
+                        <a key={ai} href={a.url} target="_blank" rel="noreferrer" className="timeline-attachment-link">
+                          📎 {a.name}
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </li>
             ))}

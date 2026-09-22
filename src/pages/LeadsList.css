@@ -88,6 +88,16 @@
   cursor: pointer;
 }
 
+.tel-link {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.tel-link:hover {
+  text-decoration: underline;
+}
+
 .row-actions {
   display: flex;
   gap: 6px;
@@ -164,6 +174,9 @@
 }
 
 .leads-table th {
+  background: var(--surface-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   text-align: left;
   padding: 13px 16px;
   color: var(--text-secondary);

@@ -10,6 +10,7 @@ import Reports from './pages/Reports'
 import Orders from './pages/Orders'
 import Customers from './pages/Customers'
 import Quotations from './pages/Quotations'
+import Products from './pages/Products'
 import Users from './pages/Users'
 import AppShell from './components/AppShell'
 
@@ -62,6 +63,7 @@ function AppRoutes() {
         <Route path="/orders" element={<Orders />} />
         <Route path="/customers" element={<Customers />} />
         <Route path="/quotations" element={<Quotations />} />
+        <Route path="/products" element={<Products />} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

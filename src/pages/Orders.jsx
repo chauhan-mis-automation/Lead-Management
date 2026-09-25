@@ -1,8 +1,10 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, Fragment } from 'react'
 import { useAuth } from '../AuthContext'
 import { supabase } from '../supabaseClient'
-import { ORDER_STATUS_OPTIONS, orderStatusMeta } from '../lib/constants'
+import { ORDER_STATUS_OPTIONS, orderStatusMeta, PAYMENT_STATUS_OPTIONS, paymentStatusMeta, paymentModeLabel } from '../lib/constants'
 import OrderFormModal from '../components/OrderFormModal'
+import PaymentFormModal from '../components/PaymentFormModal'
+import { printRecord, moneyFmt, dateFmt } from '../lib/printUtils'
 import './Orders.css'
 
 export default function Orders() {
@@ -15,9 +17,13 @@ export default function Orders() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [paymentFilter, setPaymentFilter] = useState('')
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingOrder, setEditingOrder] = useState(null)
+  const [payingOrder, setPayingOrder] = useState(null)
+  const [expandedId, setExpandedId] = useState(null)
+  const [expandedPayments, setExpandedPayments] = useState({})
 
   const loadOrders = useCallback(async () => {
     setLoading(true)
@@ -29,6 +35,7 @@ export default function Orders() {
         .select('*, lead:leads!orders_lead_id_fkey(lead_name, assigned_to)')
         .order('created_at', { ascending: false })
       if (statusFilter) query = query.eq('status', statusFilter)
+      if (paymentFilter) query = query.eq('payment_status', paymentFilter)
 
       const { data, error: fetchError } = await query
       if (fetchError) setError(fetchError.message)
@@ -48,20 +55,108 @@ export default function Orders() {
       ])
 
       const combined = [...(mineRes.data || []), ...(assignedRes.data || [])]
-      const deduped = Array.from(new Map(combined.map((o) => [o.id, o])).values())
-      const filtered = statusFilter ? deduped.filter((o) => o.status === statusFilter) : deduped
-      filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      let deduped = Array.from(new Map(combined.map((o) => [o.id, o])).values())
+      if (statusFilter) deduped = deduped.filter((o) => o.status === statusFilter)
+      if (paymentFilter) deduped = deduped.filter((o) => o.payment_status === paymentFilter)
+      deduped.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 
       if (mineRes.error) setError(mineRes.error.message)
-      setOrders(filtered)
+      setOrders(deduped)
     }
 
     setLoading(false)
-  }, [isManager, session, statusFilter])
+  }, [isManager, session, statusFilter, paymentFilter])
 
   useEffect(() => {
     if (role) loadOrders()
   }, [role, loadOrders])
+
+  async function toggleExpand(o) {
+    if (expandedId === o.id) {
+      setExpandedId(null)
+      return
+    }
+    setExpandedId(o.id)
+    if (!expandedPayments[o.id]) {
+      const { data } = await supabase.from('payments').select('*').eq('order_id', o.id).order('payment_date', { ascending: false })
+      setExpandedPayments((prev) => ({ ...prev, [o.id]: data || [] }))
+    }
+  }
+
+  async function refreshOrderRow(orderId) {
+    const { data } = await supabase
+      .from('orders')
+      .select('*, lead:leads!orders_lead_id_fkey(lead_name, assigned_to)')
+      .eq('id', orderId)
+      .single()
+    if (data) {
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? data : o)))
+    }
+    const { data: paymentsData } = await supabase.from('payments').select('*').eq('order_id', orderId).order('payment_date', { ascending: false })
+    setExpandedPayments((prev) => ({ ...prev, [orderId]: paymentsData || [] }))
+  }
+
+  async function handlePrintOrder(o) {
+    let payments = expandedPayments[o.id]
+    if (!payments) {
+      const { data } = await supabase.from('payments').select('*').eq('order_id', o.id).order('payment_date', { ascending: false })
+      payments = data || []
+      setExpandedPayments((prev) => ({ ...prev, [o.id]: payments }))
+    }
+
+    const meta = orderStatusMeta(o.status)
+    const payMeta = paymentStatusMeta(o.payment_status)
+    const remaining = Math.max(0, Number(o.order_value || 0) - Number(o.paid_amount || 0))
+
+    const paymentRows = payments.length
+      ? payments.map((p) => `
+          <tr>
+            <td>${dateFmt(p.payment_date)}</td>
+            <td>${paymentModeLabel(p.payment_mode)}</td>
+            <td class="num">${moneyFmt(p.amount)}</td>
+            <td>${p.notes || '—'}</td>
+          </tr>`).join('')
+      : ''
+
+    const body = `
+      <div class="print-brand">
+        <div>
+          <h1>Wavexa Lead Generation</h1>
+          <div class="print-brand-sub">Lead to Order · Track · Follow Up · Convert</div>
+        </div>
+        <div class="print-doc-title">
+          <div class="print-doc-name">Order</div>
+          <div class="print-doc-number">${o.order_number}</div>
+        </div>
+      </div>
+
+      <div class="print-meta-grid">
+        <div><span>Company</span><strong>${o.company || o.lead?.lead_name || '—'}</strong></div>
+        <div><span>Order Date</span><strong>${dateFmt(o.order_date)}</strong></div>
+        <div><span>Status</span><span class="print-badge">${meta.label}</span></div>
+        <div><span>Payment Status</span><span class="print-badge">${payMeta.label}</span></div>
+      </div>
+
+      ${o.project_details ? `<h2>Project Details</h2><p class="print-notes">${o.project_details}</p>` : ''}
+
+      <h2>Payment Summary</h2>
+      <div class="print-totals" style="margin-left:0; width:100%; max-width:320px;">
+        <div><span>Order Value</span><span>${moneyFmt(o.order_value)}</span></div>
+        <div><span>Paid</span><span>${moneyFmt(o.paid_amount)}</span></div>
+        <div class="print-grand"><span>Remaining</span><span>${moneyFmt(remaining)}</span></div>
+      </div>
+
+      ${paymentRows ? `
+        <h2>Payment History</h2>
+        <table>
+          <thead><tr><th>Date</th><th>Mode</th><th class="num">Amount</th><th>Notes</th></tr></thead>
+          <tbody>${paymentRows}</tbody>
+        </table>
+      ` : ''}
+    `
+
+    printRecord(`Order ${o.order_number}`, body)
+  }
 
   const filteredOrders = orders.filter((o) => {
     if (!search.trim()) return true
@@ -76,6 +171,10 @@ export default function Orders() {
   const totalValue = filteredOrders
     .filter((o) => o.status !== 'cancelled')
     .reduce((sum, o) => sum + (Number(o.order_value) || 0), 0)
+
+  const totalPending = filteredOrders
+    .filter((o) => o.status !== 'cancelled')
+    .reduce((sum, o) => sum + Math.max(0, Number(o.order_value || 0) - Number(o.paid_amount || 0)), 0)
 
   return (
     <div>
@@ -98,6 +197,10 @@ export default function Orders() {
           <span className="orders-summary-value">₹{totalValue.toLocaleString('en-IN')}</span>
           <span className="orders-summary-label">Total Value</span>
         </div>
+        <div className="orders-summary-item warn">
+          <span className="orders-summary-value">₹{totalPending.toLocaleString('en-IN')}</span>
+          <span className="orders-summary-label">Pending Payment</span>
+        </div>
       </div>
 
       <div className="orders-filters">
@@ -110,6 +213,12 @@ export default function Orders() {
         <select className="text-input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           <option value="">All Status</option>
           {ORDER_STATUS_OPTIONS.map((s) => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
+        </select>
+        <select className="text-input" value={paymentFilter} onChange={(e) => setPaymentFilter(e.target.value)}>
+          <option value="">All Payment Status</option>
+          {PAYMENT_STATUS_OPTIONS.map((s) => (
             <option key={s.value} value={s.value}>{s.label}</option>
           ))}
         </select>
@@ -129,36 +238,81 @@ export default function Orders() {
           <table className="orders-table">
             <thead>
               <tr>
+                <th></th>
                 <th>Order No.</th>
                 <th>Company</th>
                 <th>Value</th>
+                <th>Paid</th>
+                <th>Remaining</th>
                 <th>Status</th>
-                <th>Order Date</th>
-                <th>Delivery</th>
+                <th>Payment</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {filteredOrders.map((o) => {
                 const meta = orderStatusMeta(o.status)
+                const payMeta = paymentStatusMeta(o.payment_status)
+                const remaining = Math.max(0, Number(o.order_value || 0) - Number(o.paid_amount || 0))
+                const isOpen = expandedId === o.id
                 return (
-                  <tr key={o.id}>
-                    <td className="order-number-cell">{o.order_number}</td>
-                    <td>{o.company || o.lead?.lead_name || '—'}</td>
-                    <td>{o.order_value ? `₹${Number(o.order_value).toLocaleString('en-IN')}` : '—'}</td>
-                    <td>
-                      <span className="status-badge" style={{ '--badge-color': meta.color }}>{meta.label}</span>
-                    </td>
-                    <td>{o.order_date ? new Date(o.order_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
-                    <td>{o.delivery_date ? new Date(o.delivery_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—'}</td>
-                    <td>
-                      {(isManager || o.created_by === session?.user?.id) && (
-                        <button className="icon-btn" title="Edit order" onClick={() => setEditingOrder(o)}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 20h4L18.5 9.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 15.5V20Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/></svg>
-                        </button>
-                      )}
-                    </td>
-                  </tr>
+                  <Fragment key={o.id}>
+                    <tr className="order-row" onClick={() => toggleExpand(o)}>
+                      <td className="expand-cell">
+                        <span className={'expand-arrow' + (isOpen ? ' open' : '')}>›</span>
+                      </td>
+                      <td className="order-number-cell">{o.order_number}</td>
+                      <td>{o.company || o.lead?.lead_name || '—'}</td>
+                      <td>{o.order_value ? `₹${Number(o.order_value).toLocaleString('en-IN')}` : '—'}</td>
+                      <td>₹{Number(o.paid_amount || 0).toLocaleString('en-IN')}</td>
+                      <td className={remaining > 0 ? 'remaining-due' : ''}>₹{remaining.toLocaleString('en-IN')}</td>
+                      <td><span className="status-badge" style={{ '--badge-color': meta.color }}>{meta.label}</span></td>
+                      <td><span className="status-badge" style={{ '--badge-color': payMeta.color }}>{payMeta.label}</span></td>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <div className="order-row-actions">
+                          <button className="icon-btn" title="Print order" onClick={() => handlePrintOrder(o)}>🖨</button>
+                          {remaining > 0 && (isManager || o.created_by === session?.user?.id) && (
+                            <button className="btn-ghost small" onClick={() => setPayingOrder(o)}>+ Payment</button>
+                          )}
+                          {(isManager || o.created_by === session?.user?.id) && (
+                            <button className="icon-btn" title="Edit order" onClick={() => setEditingOrder(o)}>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 20h4L18.5 9.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 15.5V20Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/></svg>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                    {isOpen && (
+                      <tr className="order-expand-row">
+                        <td colSpan={9}>
+                          <div className="payments-panel">
+                            <div className="payments-panel-head">
+                              <span>Payment History</span>
+                              {remaining > 0 && (isManager || o.created_by === session?.user?.id) && (
+                                <button className="btn-ghost small" onClick={() => setPayingOrder(o)}>+ Add Payment</button>
+                              )}
+                            </div>
+                            {!expandedPayments[o.id] ? (
+                              <p className="orders-empty" style={{ padding: '8px 0' }}>Loading…</p>
+                            ) : expandedPayments[o.id].length === 0 ? (
+                              <p className="orders-empty" style={{ padding: '8px 0' }}>No payments recorded yet.</p>
+                            ) : (
+                              <div className="mini-payments-list">
+                                {expandedPayments[o.id].map((p) => (
+                                  <div key={p.id} className="mini-payment-row">
+                                    <span className="mini-payment-amount">₹{Number(p.amount).toLocaleString('en-IN')}</span>
+                                    <span>{paymentModeLabel(p.payment_mode)}</span>
+                                    <span>{new Date(p.payment_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                                    {p.notes && <span className="mini-payment-notes">{p.notes}</span>}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 )
               })}
             </tbody>
@@ -180,6 +334,19 @@ export default function Orders() {
           currentUserId={session?.user?.id}
           onClose={() => setEditingOrder(null)}
           onSaved={() => { setEditingOrder(null); loadOrders() }}
+        />
+      )}
+
+      {payingOrder && (
+        <PaymentFormModal
+          order={payingOrder}
+          currentUserId={session?.user?.id}
+          onClose={() => setPayingOrder(null)}
+          onSaved={async () => {
+            const orderId = payingOrder.id
+            setPayingOrder(null)
+            await refreshOrderRow(orderId)
+          }}
         />
       )}
     </div>

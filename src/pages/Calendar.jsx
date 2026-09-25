@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import { supabase } from '../supabaseClient'
-import { STATUS_OPTIONS, statusMeta } from '../lib/constants'
+import { STATUS_OPTIONS, statusMeta, actionTypeMeta } from '../lib/constants'
 import './Calendar.css'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -29,6 +30,7 @@ function buildMonthGrid(year, month) {
 }
 
 export default function CalendarPage() {
+  const navigate = useNavigate()
   const { profile, session } = useAuth()
   const isManager = ['admin', 'subadmin'].includes(profile?.role)
 
@@ -53,8 +55,9 @@ export default function CalendarPage() {
 
     let query = supabase
       .from('leads')
-      .select('id, lead_name, company, status, next_followup_date, assigned_to, assigned_profile:profiles!leads_assigned_to_fkey(full_name)')
+      .select('id, lead_name, company, status, next_followup_date, next_action_type, next_action_location, assigned_to, assigned_profile:profiles!leads_assigned_to_fkey(full_name)')
       .not('next_followup_date', 'is', null)
+      .not('status', 'in', '(won_order,lost_order)')
       .gte('next_followup_date', rangeStart)
       .lte('next_followup_date', rangeEnd)
 
@@ -182,9 +185,10 @@ export default function CalendarPage() {
                 <div className="cal-chips">
                   {visible.map((lead) => {
                     const meta = statusMeta(lead.status)
+                    const aMeta = actionTypeMeta(lead.next_action_type)
                     return (
                       <span key={lead.id} className="cal-chip" style={{ '--chip-color': meta.color }}>
-                        {lead.company || lead.lead_name}
+                        <span className="cal-chip-icon">{aMeta.icon}</span>{lead.company || lead.lead_name}
                       </span>
                     )
                   })}
@@ -209,19 +213,27 @@ export default function CalendarPage() {
           <ul className="cal-day-list">
             {selectedDayLeads.map((lead) => {
               const meta = statusMeta(lead.status)
+              const aMeta = actionTypeMeta(lead.next_action_type)
               return (
-                <li key={lead.id} className="cal-day-item">
+                <li key={lead.id} className="cal-day-item clickable" onClick={() => navigate(`/leads/${lead.id}`)}>
                   <div className="cal-day-time">
                     {new Date(lead.next_followup_date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                   </div>
                   <div className="cal-day-info">
-                    <div className="cal-day-name">{lead.lead_name}</div>
+                    <div className="cal-day-name">
+                      <span className="cal-action-chip" style={{ '--action-color': aMeta.color }} title={aMeta.label}>
+                        {aMeta.icon} {aMeta.label}
+                      </span>
+                      {lead.lead_name}
+                    </div>
                     {lead.company && <div className="cal-day-company">{lead.company}</div>}
+                    {lead.next_action_location && <div className="cal-day-location">📍 {lead.next_action_location}</div>}
                   </div>
                   <span className="status-badge" style={{ '--badge-color': meta.color }}>{meta.label}</span>
                   {isManager && (
                     <span className="cal-day-assignee">{lead.assigned_profile?.full_name || 'Unassigned'}</span>
                   )}
+                  <span className="cal-day-arrow">›</span>
                 </li>
               )
             })}

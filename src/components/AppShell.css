@@ -353,6 +353,8 @@
 
 .shell-content {
   padding: 32px 40px;
+  overflow-x: hidden;
+  min-width: 0;
 }
 
 /* ---------- Mobile layout ---------- */

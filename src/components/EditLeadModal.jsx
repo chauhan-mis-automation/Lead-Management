@@ -1,18 +1,32 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { SOURCE_OPTIONS } from '../lib/constants'
+import { SOURCE_OPTIONS, PRIORITY_OPTIONS } from '../lib/constants'
+import SearchableSelect from './SearchableSelect'
 import './LeadFormModal.css'
 
 export default function EditLeadModal({ lead, onClose, onSaved }) {
+  const [products, setProducts] = useState([])
   const [form, setForm] = useState({
     lead_name: lead.lead_name || '',
     mobile: lead.mobile || '',
     email: lead.email || '',
     company: lead.company || '',
-    source: lead.source || 'manual_entry'
+    product_id: lead.product_id || '',
+    source: lead.source || 'manual_entry',
+    priority: lead.priority || 'medium',
+    budget: lead.budget || '',
+    requirement: lead.requirement || ''
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    async function loadProducts() {
+      const { data } = await supabase.from('products').select('id, product_name, category').eq('is_active', true).order('product_name')
+      setProducts(data || [])
+    }
+    loadProducts()
+  }, [])
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }))
@@ -34,7 +48,11 @@ export default function EditLeadModal({ lead, onClose, onSaved }) {
         mobile: form.mobile.trim() || null,
         email: form.email.trim() || null,
         company: form.company.trim() || null,
-        source: form.source
+        product_id: form.product_id || null,
+        source: form.source,
+        priority: form.priority,
+        budget: form.budget ? Number(form.budget) : null,
+        requirement: form.requirement.trim() || null
       })
       .eq('id', lead.id)
 
@@ -81,6 +99,35 @@ export default function EditLeadModal({ lead, onClose, onSaved }) {
                   <option key={s.value} value={s.value}>{s.label}</option>
                 ))}
               </select>
+            </div>
+            <div className="field">
+              <label>Product / Service</label>
+              <SearchableSelect
+                options={products.map((p) => ({ value: p.id, label: p.product_name, sublabel: p.category }))}
+                value={form.product_id}
+                onChange={(v) => update('product_id', v)}
+                placeholder="Search product/service…"
+                emptyLabel="-- None --"
+              />
+            </div>
+
+            <div className="field">
+              <label>Priority</label>
+              <select className="text-input" value={form.priority} onChange={(e) => update('priority', e.target.value)}>
+                {PRIORITY_OPTIONS.map((p) => (
+                  <option key={p.value} value={p.value}>{p.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="field">
+              <label>Budget (₹)</label>
+              <input className="text-input" type="number" value={form.budget} onChange={(e) => update('budget', e.target.value)} />
+            </div>
+
+            <div className="field wide">
+              <label>Requirement</label>
+              <textarea className="text-input" rows={2} value={form.requirement} onChange={(e) => update('requirement', e.target.value)} />
             </div>
           </div>
 

@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { to: '/orders', label: 'Orders', icon: '◈', roles: ['admin', 'subadmin', 'sales', 'bde', 'calling'] },
   { to: '/customers', label: 'Customers', icon: '◎', roles: ['admin', 'subadmin', 'sales'] },
   { to: '/quotations', label: 'Quotations', icon: '▤', roles: ['admin', 'subadmin', 'sales', 'bde'] },
+  { to: '/products', label: 'Products & Services', icon: '▧', roles: ['admin', 'subadmin', 'sales', 'bde', 'calling'] },
   { to: '/users', label: 'Users', icon: '◐', roles: ['admin'] },
   { to: '/reports', label: 'Reports & MIS', icon: '◓', roles: ['admin', 'subadmin'] }
 ]

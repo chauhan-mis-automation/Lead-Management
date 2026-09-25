@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import { supabase } from '../supabaseClient'
-import { STATUS_OPTIONS, SOURCE_OPTIONS, statusMeta, sourceLabel } from '../lib/constants'
+import { STATUS_OPTIONS, SOURCE_OPTIONS, statusMeta, sourceLabel, PRIORITY_OPTIONS, priorityMeta } from '../lib/constants'
 import LeadFormModal from '../components/LeadFormModal'
 import EditLeadModal from '../components/EditLeadModal'
 import './LeadsList.css'
@@ -24,6 +24,7 @@ export default function LeadsList() {
   const [search, setSearch] = useState(searchParams.get('search') || '')
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '')
   const [sourceFilter, setSourceFilter] = useState('')
+  const [priorityFilter, setPriorityFilter] = useState('')
   const [taskFilter, setTaskFilter] = useState(searchParams.get('task') || '')
 
   useEffect(() => {
@@ -47,6 +48,7 @@ export default function LeadsList() {
     }
     if (statusFilter) query = query.eq('status', statusFilter)
     if (sourceFilter) query = query.eq('source', sourceFilter)
+    if (priorityFilter) query = query.eq('priority', priorityFilter)
 
     const { data, error: fetchError } = await query
 
@@ -57,7 +59,7 @@ export default function LeadsList() {
       setLeads(data || [])
     }
     setLoading(false)
-  }, [isManager, session, statusFilter, sourceFilter])
+  }, [isManager, session, statusFilter, sourceFilter, priorityFilter])
 
   useEffect(() => {
     if (role) loadLeads()
@@ -165,6 +167,12 @@ export default function LeadsList() {
             <option key={s.value} value={s.value}>{s.label}</option>
           ))}
         </select>
+        <select className="text-input" value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
+          <option value="">All Priorities</option>
+          {PRIORITY_OPTIONS.map((p) => (
+            <option key={p.value} value={p.value}>{p.label}</option>
+          ))}
+        </select>
       </div>
 
       {error && <div className="form-error">{error}</div>}
@@ -184,6 +192,7 @@ export default function LeadsList() {
                 <th>Lead</th>
                 <th>Contact</th>
                 <th>Source</th>
+                <th>Priority</th>
                 <th>Status</th>
                 <th>Assigned To</th>
                 <th>Next Follow-up</th>
@@ -210,6 +219,11 @@ export default function LeadsList() {
                       {lead.email && <div className="lead-email-cell">{lead.email}</div>}
                     </td>
                     <td>{sourceLabel(lead.source)}</td>
+                    <td>
+                      <span className="priority-badge" style={{ '--badge-color': priorityMeta(lead.priority).color }}>
+                        {priorityMeta(lead.priority).label}
+                      </span>
+                    </td>
                     <td>
                       <span className="status-badge" style={{ '--badge-color': meta.color }}>
                         {meta.label}

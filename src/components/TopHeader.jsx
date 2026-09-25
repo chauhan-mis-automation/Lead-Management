@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import logo from '../assets/logo.jpeg'
 import NotificationBell from './NotificationBell'
+import GlobalSearch from './GlobalSearch'
 import './TopHeader.css'
 
 const ROLE_LABELS = { admin: 'Admin', subadmin: 'Subadmin', sales: 'Sales', bde: 'BDE', calling: 'Calling' }
@@ -10,7 +11,6 @@ const ROLE_LABELS = { admin: 'Admin', subadmin: 'Subadmin', sales: 'Sales', bde:
 export default function TopHeader() {
   const { profile, session, signOut } = useAuth()
   const navigate = useNavigate()
-  const [search, setSearch] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
 
@@ -21,13 +21,6 @@ export default function TopHeader() {
     document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
-
-  function handleSearchSubmit(e) {
-    e.preventDefault()
-    if (search.trim()) {
-      navigate(`/leads?search=${encodeURIComponent(search.trim())}`)
-    }
-  }
 
   const today = new Date()
   const dateLabel = today.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -55,14 +48,7 @@ export default function TopHeader() {
         </div>
       </div>
 
-      <form className="top-header-search" onSubmit={handleSearchSubmit}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8"/><path d="M20 20L16.5 16.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
-        <input
-          placeholder="Search lead, company, contact…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </form>
+      <GlobalSearch />
 
       <div className="top-header-actions">
         <NotificationBell />

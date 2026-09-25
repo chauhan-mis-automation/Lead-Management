@@ -61,3 +61,44 @@ export const QUOTATION_STATUS_OPTIONS = [
 export function quotationStatusMeta(value) {
   return QUOTATION_STATUS_OPTIONS.find((s) => s.value === value) || { label: value, color: '#8B93A7' }
 }
+
+export const PRIORITY_OPTIONS = [
+  { value: 'low', label: 'Low', color: '#6C7390' },
+  { value: 'medium', label: 'Medium', color: '#F5A623' },
+  { value: 'high', label: 'High', color: '#E5484D' }
+]
+
+export function priorityMeta(value) {
+  return PRIORITY_OPTIONS.find((p) => p.value === value) || PRIORITY_OPTIONS[1]
+}
+
+export const PAYMENT_STATUS_OPTIONS = [
+  { value: 'pending', label: 'Pending', color: '#E5484D' },
+  { value: 'partial', label: 'Partial', color: '#F5A623' },
+  { value: 'paid', label: 'Paid', color: '#2DBE7E' }
+]
+
+export function paymentStatusMeta(value) {
+  return PAYMENT_STATUS_OPTIONS.find((s) => s.value === value) || PAYMENT_STATUS_OPTIONS[0]
+}
+
+export const PAYMENT_MODE_OPTIONS = [
+  { value: 'cash', label: 'Cash' },
+  { value: 'upi', label: 'UPI' },
+  { value: 'bank_transfer', label: 'Bank Transfer' },
+  { value: 'cheque', label: 'Cheque' },
+  { value: 'card', label: 'Card' },
+  { value: 'other', label: 'Other' }
+]
+
+export function paymentModeLabel(value) {
+  return PAYMENT_MODE_OPTIONS.find((m) => m.value === value)?.label || value
+}
+
+export function formatPriceRange(price, priceMax) {
+  if (price == null && priceMax == null) return '—'
+  if (priceMax != null && Number(priceMax) > 0 && Number(priceMax) !== Number(price)) {
+    return `₹${Number(price || 0).toLocaleString('en-IN')} – ₹${Number(priceMax).toLocaleString('en-IN')}`
+  }
+  return price != null ? `₹${Number(price).toLocaleString('en-IN')}` : '—'
+}

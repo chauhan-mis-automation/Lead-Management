@@ -2,8 +2,9 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import { supabase } from '../supabaseClient'
-import { STATUS_OPTIONS, sourceLabel, statusMeta, ACTION_TYPE_OPTIONS, actionTypeMeta, quotationStatusMeta } from '../lib/constants'
+import { STATUS_OPTIONS, sourceLabel, statusMeta, ACTION_TYPE_OPTIONS, actionTypeMeta, quotationStatusMeta, priorityMeta } from '../lib/constants'
 import QuotationFormModal from '../components/QuotationFormModal'
+import QuotationDetailModal from '../components/QuotationDetailModal'
 import Swal from 'sweetalert2'
 import 'sweetalert2/dist/sweetalert2.min.css'
 import './LeadDetail.css'
@@ -22,6 +23,7 @@ export default function LeadDetail() {
   const [timeline, setTimeline] = useState([])
   const [quotations, setQuotations] = useState([])
   const [showQuoteForm, setShowQuoteForm] = useState(false)
+  const [viewQuoteId, setViewQuoteId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -43,11 +45,13 @@ export default function LeadDetail() {
   const [projectDetails, setProjectDetails] = useState('')
   const [lossReason, setLossReason] = useState('')
   const [competitorName, setCompetitorName] = useState('')
+  const [followupEditDate, setFollowupEditDate] = useState('')
+  const [followupFormError, setFollowupFormError] = useState('')
 
   const loadLead = useCallback(async () => {
     const { data, error: fetchError } = await supabase
       .from('leads')
-      .select('*, assigned_profile:profiles!leads_assigned_to_fkey(id, full_name)')
+      .select('*, assigned_profile:profiles!leads_assigned_to_fkey(id, full_name), product:products(product_name, category)')
       .eq('id', id)
       .single()
 
@@ -60,6 +64,13 @@ export default function LeadDetail() {
       setProjectDetails(data.project_details || '')
       setLossReason(data.loss_reason || '')
       setCompetitorName(data.competitor_name || '')
+      if (data.next_followup_date) {
+        const d = new Date(data.next_followup_date)
+        const pad = (n) => String(n).padStart(2, '0')
+        setFollowupEditDate(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`)
+      } else {
+        setFollowupEditDate('')
+      }
     }
   }, [id])
 
@@ -139,11 +150,21 @@ export default function LeadDetail() {
     if (!updateError) loadLead()
   }
 
+  async function handleFollowupDateEdit(value) {
+    setFollowupEditDate(value)
+    const payload = { next_followup_date: value ? new Date(value).toISOString() : null }
+    const { error: updateError } = await supabase.from('leads').update(payload).eq('id', id)
+    if (!updateError) loadLead()
+  }
+
   async function handleStatusChange(newStatus) {
     setSaving(true)
+    const statusUpdate = { status: newStatus }
+    if (newStatus === WON || newStatus === LOST) statusUpdate.next_followup_date = null
+
     const { error: updateError } = await supabase
       .from('leads')
-      .update({ status: newStatus })
+      .update(statusUpdate)
       .eq('id', id)
 
     if (!updateError) {
@@ -196,8 +217,9 @@ export default function LeadDetail() {
     e.preventDefault()
     if (!followRemark.trim()) return
     setSaving(true)
+    setFollowupFormError('')
 
-    await supabase.from('followup_history').insert({
+    const { error: historyError } = await supabase.from('followup_history').insert({
       lead_id: id,
       remarks: followRemark.trim(),
       status: followStatus || lead.status,
@@ -206,11 +228,24 @@ export default function LeadDetail() {
       created_by: session?.user?.id
     })
 
+    if (historyError) {
+      setFollowupFormError('Could not save follow-up: ' + historyError.message)
+      setSaving(false)
+      return
+    }
+
     const leadUpdate = { next_action_type: actionType, next_action_location: actionLocation.trim() || null }
     if (followDate) leadUpdate.next_followup_date = new Date(followDate).toISOString()
     if (followStatus) leadUpdate.status = followStatus
 
-    await supabase.from('leads').update(leadUpdate).eq('id', id)
+    const { error: leadUpdateError } = await supabase.from('leads').update(leadUpdate).eq('id', id)
+
+    if (leadUpdateError) {
+      setFollowupFormError('Follow-up was logged, but updating the lead\'s next action type failed: ' + leadUpdateError.message)
+      setSaving(false)
+      await loadTimeline()
+      return
+    }
 
     setFollowRemark('')
     setFollowDate('')
@@ -227,8 +262,8 @@ export default function LeadDetail() {
     setSaving(true)
 
     const payload = lead.status === WON
-      ? { order_value: orderValue || null, closing_date: closingDate || null, project_details: projectDetails || null }
-      : { loss_reason: lossReason || null, competitor_name: competitorName || null }
+      ? { order_value: orderValue || null, closing_date: closingDate || null, project_details: projectDetails || null, next_followup_date: null }
+      : { loss_reason: lossReason || null, competitor_name: competitorName || null, next_followup_date: null }
 
     const { error: closureError } = await supabase.from('leads').update(payload).eq('id', id)
 
@@ -306,6 +341,15 @@ export default function LeadDetail() {
             </dd>
             <dt>Email</dt><dd>{lead.email || '—'}</dd>
             <dt>Source</dt><dd>{sourceLabel(lead.source)}</dd>
+            <dt>Product</dt><dd>{lead.product?.product_name || '—'}</dd>
+            <dt>Priority</dt>
+            <dd>
+              <span className="priority-badge" style={{ '--badge-color': priorityMeta(lead.priority).color }}>
+                {priorityMeta(lead.priority).label}
+              </span>
+            </dd>
+            <dt>Budget</dt><dd>{lead.budget ? `₹${Number(lead.budget).toLocaleString('en-IN')}` : '—'}</dd>
+            <dt>Requirement</dt><dd>{lead.requirement || '—'}</dd>
             <dt>Created</dt><dd>{new Date(lead.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</dd>
             <dt>Next Follow-up</dt>
             <dd>
@@ -349,6 +393,32 @@ export default function LeadDetail() {
               </select>
             ) : (
               <p className="static-value">{lead.assigned_profile?.full_name || 'Unassigned'}</p>
+            )}
+          </div>
+
+          <div className="field">
+            <label>Next Follow-up Date</label>
+            <div className="followup-edit-row">
+              <input
+                type="datetime-local"
+                className="text-input"
+                value={followupEditDate}
+                onChange={(e) => handleFollowupDateEdit(e.target.value)}
+                disabled={['won_order', 'lost_order'].includes(lead.status)}
+              />
+              {followupEditDate && (
+                <button
+                  type="button"
+                  className="btn-ghost small"
+                  onClick={() => handleFollowupDateEdit('')}
+                  disabled={['won_order', 'lost_order'].includes(lead.status)}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            {['won_order', 'lost_order'].includes(lead.status) && (
+              <p className="field-hint">Follow-up date is locked once a lead is Won/Lost.</p>
             )}
           </div>
         </div>
@@ -477,6 +547,7 @@ export default function LeadDetail() {
               ))}
             </select>
           </div>
+          {followupFormError && <div className="form-error" role="alert">{followupFormError}</div>}
           <button type="submit" className="btn-primary" disabled={saving}>Save Follow-up</button>
         </form>
       </div>
@@ -495,13 +566,13 @@ export default function LeadDetail() {
             {quotations.map((q) => {
               const meta = quotationStatusMeta(q.status)
               return (
-                <div key={q.id} className="lead-quote-item">
+                <button key={q.id} className="lead-quote-item clickable" onClick={() => setViewQuoteId(q.id)}>
                   <div>
                     <div className="lead-quote-number">{q.quotation_number}</div>
                     <div className="lead-quote-amount">₹{Number(q.amount || 0).toLocaleString('en-IN')}</div>
                   </div>
                   <span className="status-badge" style={{ '--badge-color': meta.color }}>{meta.label}</span>
-                </div>
+                </button>
               )
             })}
           </div>
@@ -559,6 +630,13 @@ export default function LeadDetail() {
           currentUserId={session?.user?.id}
           onClose={() => setShowQuoteForm(false)}
           onSaved={() => { setShowQuoteForm(false); loadTimeline() }}
+        />
+      )}
+
+      {viewQuoteId && (
+        <QuotationDetailModal
+          quotationId={viewQuoteId}
+          onClose={() => setViewQuoteId(null)}
         />
       )}
     </div>

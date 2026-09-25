@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { ORDER_STATUS_OPTIONS } from '../lib/constants'
+import SearchableSelect from './SearchableSelect'
 import './LeadFormModal.css'
 
 export default function OrderFormModal({ order, currentUserId, onClose, onSaved }) {
@@ -93,12 +94,13 @@ export default function OrderFormModal({ order, currentUserId, onClose, onSaved 
           <div className="modal-grid">
             <div className="field">
               <label>Link to Lead (optional)</label>
-              <select className="text-input" value={form.lead_id} onChange={(e) => handleLeadSelect(e.target.value)}>
-                <option value="">-- No linked lead --</option>
-                {leads.map((l) => (
-                  <option key={l.id} value={l.id}>{l.lead_name}{l.company ? ` (${l.company})` : ''}</option>
-                ))}
-              </select>
+              <SearchableSelect
+                options={leads.map((l) => ({ value: l.id, label: l.lead_name, sublabel: l.company }))}
+                value={form.lead_id}
+                onChange={handleLeadSelect}
+                placeholder="Search lead…"
+                emptyLabel="-- No linked lead --"
+              />
             </div>
 
             <div className="field">

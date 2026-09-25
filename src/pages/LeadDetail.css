@@ -51,6 +51,17 @@
   white-space: nowrap;
 }
 
+.priority-badge {
+  display: inline-block;
+  background: color-mix(in srgb, var(--badge-color) 14%, transparent);
+  color: var(--badge-color);
+  border: 1px solid color-mix(in srgb, var(--badge-color) 35%, transparent);
+  border-radius: 100px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .lead-detail-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -96,6 +107,22 @@
   flex-direction: column;
   gap: 6px;
   margin-bottom: 14px;
+}
+
+.followup-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.followup-edit-row .text-input {
+  flex: 1;
+}
+
+.field-hint {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--text-secondary);
 }
 
 .tel-link {
@@ -350,6 +377,19 @@ textarea.text-input {
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 10px 14px;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+}
+
+.lead-quote-item.clickable {
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.lead-quote-item.clickable:hover {
+  border-color: var(--accent);
+  background: var(--accent-dim);
 }
 
 .lead-quote-number {

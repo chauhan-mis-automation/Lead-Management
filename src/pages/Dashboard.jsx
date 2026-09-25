@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area } from 'recharts'
 import { useAuth } from '../AuthContext'
 import { supabase } from '../supabaseClient'
 import { SOURCE_OPTIONS, statusMeta, orderStatusMeta, actionTypeMeta } from '../lib/constants'
@@ -28,6 +28,14 @@ const IconCalendar = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill
 
 function dateKey(d) { return d.toISOString().slice(0, 10) }
 
+// Buckets a timestamp by the viewer's LOCAL calendar day (not UTC), so a lead
+// created late at night IST still lands on the correct day in the trend chart.
+function localDateKey(value) {
+  const d = value instanceof Date ? value : new Date(value)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
 function buildMonthGrid(year, month) {
   const first = new Date(year, month, 1)
   const start = new Date(year, month, 1 - first.getDay())
@@ -36,6 +44,15 @@ function buildMonthGrid(year, month) {
     d.setDate(start.getDate() + i)
     return d
   })
+}
+
+function EmptyState({ icon, text }) {
+  return (
+    <div className="dash-empty">
+      <span className="dash-empty-icon">{icon}</span>
+      <span className="dash-empty-text">{text}</span>
+    </div>
+  )
 }
 
 export default function Dashboard() {
@@ -49,15 +66,19 @@ export default function Dashboard() {
   const [orders, setOrders] = useState([])
   const [activity, setActivity] = useState([])
   const [users, setUsers] = useState([])
+  const [products, setProducts] = useState([])
+  const [customerCount, setCustomerCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [showLeadForm, setShowLeadForm] = useState(false)
   const [showOrderForm, setShowOrderForm] = useState(false)
   const [statModal, setStatModal] = useState(null)
+  const [followupFilter, setFollowupFilter] = useState('all')
+  const [markingDoneId, setMarkingDoneId] = useState(null)
 
   const loadDashboard = useCallback(async () => {
     setLoading(true)
 
-    let leadsQuery = supabase.from('leads').select('id, lead_name, company, mobile, status, source, assigned_to, next_followup_date, created_at')
+    let leadsQuery = supabase.from('leads').select('id, lead_name, company, mobile, status, source, assigned_to, product_id, next_followup_date, next_action_type, next_action_location, created_at')
     if (!isManager && session?.user?.id) leadsQuery = leadsQuery.eq('assigned_to', session.user.id)
 
     let ordersQuery = supabase
@@ -66,7 +87,7 @@ export default function Dashboard() {
       .order('created_at', { ascending: false })
     if (!isManager && session?.user?.id) ordersQuery = ordersQuery.eq('created_by', session.user.id)
 
-    const [leadsRes, ordersRes, callsRes, followsRes, usersRes] = await Promise.all([
+    const [leadsRes, ordersRes, callsRes, followsRes, usersRes, productsRes, customersRes] = await Promise.all([
       leadsQuery,
       ordersQuery,
       supabase
@@ -81,12 +102,16 @@ export default function Dashboard() {
         .limit(6),
       isManager
         ? supabase.from('profiles').select('id, full_name, role').in('role', ['sales', 'bde', 'calling']).order('full_name')
-        : Promise.resolve({ data: [] })
+        : Promise.resolve({ data: [] }),
+      supabase.from('products').select('id, product_name').eq('is_active', true),
+      supabase.from('customers').select('id', { count: 'exact', head: true })
     ])
 
     setLeads(leadsRes.data || [])
     setOrders(ordersRes.data || [])
     setUsers(usersRes.data || [])
+    setProducts(productsRes.data || [])
+    setCustomerCount(customersRes.count || 0)
 
     const callItems = (callsRes.data || []).map((c) => ({
       date: c.call_date,
@@ -141,13 +166,31 @@ export default function Dashboard() {
 
   const monthDays = buildMonthGrid(today.getFullYear(), today.getMonth())
   const leadsByDay = {}
-  leads.filter((l) => l.next_followup_date).forEach((l) => {
+  leads.filter((l) => l.next_followup_date && !['won_order', 'lost_order'].includes(l.status)).forEach((l) => {
     const key = l.next_followup_date.slice(0, 10)
     if (!leadsByDay[key]) leadsByDay[key] = []
     leadsByDay[key].push(l)
   })
 
+  const trendDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today)
+    d.setDate(d.getDate() - (6 - i))
+    return d
+  })
+  const trendData = trendDays.map((d) => {
+    const key = localDateKey(d)
+    const count = leads.filter((l) => l.created_at && localDateKey(l.created_at) === key).length
+    return { day: d.toLocaleDateString('en-IN', { weekday: 'short' }), count }
+  })
+  const trendTotal = trendData.reduce((s, t) => s + t.count, 0)
+
   const recentOrders = orders.slice(0, 6)
+
+  const topProducts = products
+    .map((p) => ({ name: p.product_name, leads: leads.filter((l) => l.product_id === p.id).length }))
+    .filter((p) => p.leads > 0)
+    .sort((a, b) => b.leads - a.leads)
+    .slice(0, 5)
 
   const wonLeads = leads.filter((l) => l.status === 'won_order')
   const pendingLeads = leads.filter((l) => l.next_followup_date && !['won_order', 'lost_order'].includes(l.status))
@@ -155,6 +198,36 @@ export default function Dashboard() {
   const meetingLeads = leads.filter(
     (l) => ['meeting', 'visit'].includes(l.next_action_type) && l.next_followup_date && !['won_order', 'lost_order'].includes(l.status)
   )
+
+  const weekEnd = new Date(today)
+  weekEnd.setDate(weekEnd.getDate() + 7)
+  const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+
+  const followupRows = pendingLeads
+    .filter((l) => {
+      const d = new Date(l.next_followup_date)
+      const key = dateKey(d)
+      if (followupFilter === 'today') return key === todayKey
+      if (followupFilter === 'overdue') return key < todayKey
+      if (followupFilter === 'week') return d >= today && d <= weekEnd
+      if (followupFilter === 'month') return d >= today && d <= monthEnd
+      return true
+    })
+    .sort((a, b) => new Date(a.next_followup_date) - new Date(b.next_followup_date))
+
+  async function handleMarkFollowupDone(lead, e) {
+    e.stopPropagation()
+    setMarkingDoneId(lead.id)
+    await supabase.from('followup_history').insert({
+      lead_id: lead.id,
+      remarks: 'Marked as done from Dashboard',
+      status: lead.status,
+      created_by: session?.user?.id
+    })
+    await supabase.from('leads').update({ next_followup_date: null }).eq('id', lead.id)
+    await loadDashboard()
+    setMarkingDoneId(null)
+  }
 
   function openStatModal(label) {
     if (label === 'Total Leads') setStatModal({ title: 'Total Leads', kind: 'leads', items: leads })
@@ -186,6 +259,93 @@ export default function Dashboard() {
         ))}
       </div>
 
+      <div className="panel-card trend-panel">
+        <div className="panel-head">
+          <h3>Leads Added — Last 7 Days</h3>
+          <span className="trend-total-chip">{trendTotal} this week</span>
+        </div>
+        {trendTotal === 0 ? (
+          <EmptyState icon="📈" text="No leads added in the last 7 days yet." />
+        ) : (
+          <ResponsiveContainer width="100%" height={160}>
+            <AreaChart data={trendData} margin={{ left: 0, right: 10, top: 6, bottom: 0 }}>
+              <defs>
+                <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#5B8DEF" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="#5B8DEF" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
+              <XAxis dataKey="day" tick={{ fontSize: 11 }} stroke="var(--text-secondary)" axisLine={false} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} stroke="var(--text-secondary)" axisLine={false} tickLine={false} width={28} />
+              <Tooltip />
+              <Area type="monotone" dataKey="count" name="Leads" stroke="#5B8DEF" strokeWidth={2.5} fill="url(#trendFill)" animationDuration={900} />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+
+      <div className="panel-card followups-panel">
+        <div className="panel-head">
+          <h3>My Follow-ups</h3>
+          <select className="text-input followups-filter" value={followupFilter} onChange={(e) => setFollowupFilter(e.target.value)}>
+            <option value="all">All Upcoming</option>
+            <option value="today">Due Today</option>
+            <option value="overdue">Overdue</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+          </select>
+        </div>
+        {followupRows.length === 0 ? (
+          <EmptyState icon="✅" text="No follow-ups in this range. You're all caught up!" />
+        ) : (
+          <div className="upcoming-table-wrap">
+            <table className="upcoming-table followups-table">
+              <thead>
+                <tr><th></th><th>Lead / Company</th><th>Type</th><th>Date & Time</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                {followupRows.map((l) => {
+                  const rowKey = dateKey(new Date(l.next_followup_date))
+                  const isOverdue = rowKey < todayKey
+                  const isToday = rowKey === todayKey
+                  const meta = statusMeta(l.status)
+                  const aMeta = actionTypeMeta(l.next_action_type)
+                  return (
+                    <tr
+                      key={l.id}
+                      className={'clickable-row' + (isOverdue ? ' row-overdue' : '') + (isToday ? ' row-today' : '')}
+                      onClick={() => navigate(`/leads/${l.id}`)}
+                    >
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          className="followup-check"
+                          disabled={markingDoneId === l.id}
+                          onChange={(e) => handleMarkFollowupDone(l, e)}
+                          title="Mark as done"
+                        />
+                      </td>
+                      <td>
+                        <div className="upcoming-name">{l.lead_name}</div>
+                        {l.company && <div className="upcoming-company">{l.company}</div>}
+                      </td>
+                      <td><span className="action-type-chip-mini">{aMeta.icon} {aMeta.label}</span></td>
+                      <td>
+                        {isToday && <span className="today-blink-dot" />}
+                        {new Date(l.next_followup_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        {isOverdue && <span className="overdue-tag">Overdue</span>}
+                      </td>
+                      <td><span className="status-badge" style={{ '--badge-color': meta.color }}>{meta.label}</span></td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       <div className="dash-row-2col">
         <div className="panel-card pipeline-panel">
           <div className="panel-head">
@@ -199,7 +359,7 @@ export default function Dashboard() {
               const extra = colLeads.length - visible.length
               return (
                 <div className="pipeline-column" key={col.key}>
-                  <div className="pipeline-col-header" style={{ background: col.color }}>
+                  <div className="pipeline-col-header" style={{ '--col-color': col.color }}>
                     <span>{col.label}</span>
                     <span className="pipeline-col-count">{colLeads.length}</span>
                   </div>
@@ -217,7 +377,12 @@ export default function Dashboard() {
                       </button>
                     ))}
                     {extra > 0 && <div className="pipeline-more">+ {extra} more</div>}
-                    {colLeads.length === 0 && <div className="pipeline-empty">No leads</div>}
+                    {colLeads.length === 0 && (
+                      <div className="pipeline-empty">
+                        <span className="pipeline-empty-icon">○</span>
+                        <span>No leads</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )
@@ -257,7 +422,9 @@ export default function Dashboard() {
                             <span className="mini-cal-tooltip-time">
                               {new Date(l.next_followup_date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                             </span>
-                            <span className="mini-cal-tooltip-name">{l.lead_name}{l.company ? ` · ${l.company}` : ''}</span>
+                            <span className="mini-cal-tooltip-name">
+                              {actionTypeMeta(l.next_action_type).icon} {l.lead_name}{l.company ? ` · ${l.company}` : ''}
+                            </span>
                           </div>
                         ))}
                         {dayLeads.length > 4 && <div className="mini-cal-tooltip-more">+{dayLeads.length - 4} more</div>}
@@ -274,7 +441,7 @@ export default function Dashboard() {
               <h3>Today's Activities ({dueTodayLeads.length})</h3>
             </div>
             {dueTodayLeads.length === 0 ? (
-              <p className="dash-note">Nothing scheduled for today.</p>
+              <EmptyState icon="☀️" text="Nothing scheduled for today." />
             ) : (
               <ul className="today-calls-list">
                 {dueTodayLeads.slice(0, 5).map((l) => {
@@ -308,7 +475,7 @@ export default function Dashboard() {
             <button className="link-btn" onClick={() => navigate('/leads')}>View All</button>
           </div>
           {upcoming.length === 0 ? (
-            <p className="dash-note">No upcoming follow-ups.</p>
+            <EmptyState icon="🗓️" text="No upcoming follow-ups." />
           ) : (
             <div className="upcoming-table-wrap">
               <table className="upcoming-table">
@@ -375,7 +542,7 @@ export default function Dashboard() {
         <div className="panel-card">
           <div className="panel-head"><h3>Leads by Source</h3></div>
           {sourceData.length === 0 ? (
-            <p className="dash-note">No leads yet.</p>
+            <EmptyState icon="📊" text="No leads yet." />
           ) : (
             <div className="donut-wrap">
               <div className="donut-chart">
@@ -411,7 +578,7 @@ export default function Dashboard() {
             <button className="link-btn" onClick={() => navigate('/orders')}>View All</button>
           </div>
           {recentOrders.length === 0 ? (
-            <p className="dash-note">No orders yet.</p>
+            <EmptyState icon="🧾" text="No orders yet." />
           ) : (
             <div className="recent-orders-list">
               {recentOrders.map((o) => {
@@ -432,10 +599,50 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <div className="dash-row-2col">
+        <div className="panel-card">
+          <div className="panel-head"><h3>Business Snapshot</h3></div>
+          <div className="snapshot-grid">
+            <button className="snapshot-tile" onClick={() => navigate('/products')}>
+              <span className="snapshot-value">{products.length}</span>
+              <span className="snapshot-label">Active Products</span>
+            </button>
+            <button className="snapshot-tile" onClick={() => navigate('/customers')}>
+              <span className="snapshot-value">{customerCount}</span>
+              <span className="snapshot-label">Customers</span>
+            </button>
+            <button className="snapshot-tile" onClick={() => navigate('/orders')}>
+              <span className="snapshot-value">{orders.length}</span>
+              <span className="snapshot-label">Total Orders</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="panel-card">
+          <div className="panel-head">
+            <h3>Top Products by Leads</h3>
+            <button className="link-btn" onClick={() => navigate('/products')}>View All</button>
+          </div>
+          {topProducts.length === 0 ? (
+            <EmptyState icon="📦" text="No product-linked leads yet." />
+          ) : (
+            <ResponsiveContainer width="100%" height={190}>
+              <BarChart data={topProducts} layout="vertical" margin={{ left: 10, right: 16 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" horizontal={false} />
+                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} stroke="var(--text-secondary)" />
+                <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11 }} stroke="var(--text-secondary)" />
+                <Tooltip />
+                <Bar dataKey="leads" name="Leads" fill="#5B8DEF" radius={[0, 6, 6, 0]} barSize={16} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
       <div className="panel-card">
         <div className="panel-head"><h3>Recent Activity</h3></div>
         {activity.length === 0 ? (
-          <p className="dash-note">No recent activity.</p>
+          <EmptyState icon="🕓" text="No recent activity." />
         ) : (
           <ul className="activity-list">
             {activity.map((a, i) => (

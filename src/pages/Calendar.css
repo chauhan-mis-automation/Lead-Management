@@ -235,6 +235,10 @@
   transition: transform 0.12s ease;
 }
 
+.cal-chip-icon {
+  margin-right: 3px;
+}
+
 .cal-cell:hover .cal-chip {
   transform: translateX(1px);
 }
@@ -304,6 +308,16 @@
   background: color-mix(in srgb, var(--accent) 6%, var(--surface-muted));
 }
 
+.cal-day-item.clickable {
+  cursor: pointer;
+}
+
+.cal-day-arrow {
+  color: var(--text-secondary);
+  font-size: 18px;
+  margin-left: auto;
+}
+
 .cal-day-time {
   font-size: 13px;
   font-weight: 700;
@@ -319,11 +333,35 @@
 .cal-day-name {
   font-size: 14px;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cal-action-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--action-color);
+  background: color-mix(in srgb, var(--action-color) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--action-color) 35%, transparent);
+  border-radius: 100px;
+  padding: 2px 8px;
+  white-space: nowrap;
 }
 
 .cal-day-company {
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+.cal-day-location {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 2px;
 }
 
 .cal-day-assignee {

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { statusMeta, orderStatusMeta } from '../lib/constants'
+import { statusMeta, orderStatusMeta, paymentStatusMeta } from '../lib/constants'
 import '../components/LeadFormModal.css'
 import './StatDetailModal.css'
 
@@ -8,7 +8,7 @@ export default function StatDetailModal({ title, kind, items, onClose }) {
 
   function goTo(item) {
     onClose()
-    if (kind === 'orders') {
+    if (kind === 'orders' || kind === 'pending') {
       navigate('/orders')
     } else {
       navigate(`/leads/${item.id}`)
@@ -27,11 +27,28 @@ export default function StatDetailModal({ title, kind, items, onClose }) {
           <p className="stat-detail-empty">Nothing here yet.</p>
         ) : (
           <div className="stat-detail-list">
-            {items.map((item) => {
+            {items.map((item, i) => {
+              if (kind === 'pending') {
+                const meta = paymentStatusMeta(item.payment_status)
+                const remaining = Math.max(0, Number(item.order_value || 0) - Number(item.paid_amount || 0))
+                return (
+                  <button key={item.order_number || i} className="stat-detail-row" onClick={() => goTo(item)}>
+                    <div>
+                      <div className="stat-detail-name">{item.order_number}</div>
+                      <div className="stat-detail-sub">{item.company || '—'}</div>
+                    </div>
+                    <div className="stat-detail-right">
+                      <span className="stat-detail-value">₹{remaining.toLocaleString('en-IN')} due</span>
+                      <span className="status-badge" style={{ '--badge-color': meta.color }}>{meta.label}</span>
+                    </div>
+                  </button>
+                )
+              }
+
               if (kind === 'orders') {
                 const meta = orderStatusMeta(item.status)
                 return (
-                  <button key={item.id} className="stat-detail-row" onClick={() => goTo(item)}>
+                  <button key={item.id || i} className="stat-detail-row" onClick={() => goTo(item)}>
                     <div>
                       <div className="stat-detail-name">{item.order_number}</div>
                       <div className="stat-detail-sub">{item.company || item.lead?.lead_name || '—'}</div>
@@ -46,7 +63,7 @@ export default function StatDetailModal({ title, kind, items, onClose }) {
 
               const meta = statusMeta(item.status)
               return (
-                <button key={item.id} className="stat-detail-row" onClick={() => goTo(item)}>
+                <button key={item.id || i} className="stat-detail-row" onClick={() => goTo(item)}>
                   <div>
                     <div className="stat-detail-name">{item.lead_name}</div>
                     <div className="stat-detail-sub">{item.company || '—'}</div>

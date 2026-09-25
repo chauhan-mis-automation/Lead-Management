@@ -89,10 +89,15 @@ h1 {
   align-items: start;
 }
 
+.dash-row-2col > * {
+  min-width: 0;
+}
+
 .dash-side-col {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
 }
 
 .panel-card {
@@ -104,6 +109,46 @@ h1 {
   margin-bottom: 16px;
   animation: dashFadeIn 0.45s ease both;
   animation-delay: 0.1s;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.panel-card:hover {
+  box-shadow: 0 10px 26px rgba(23, 27, 46, 0.09);
+}
+
+.trend-panel .panel-head {
+  margin-bottom: 6px;
+}
+
+.trend-total-chip {
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 100px;
+}
+
+.dash-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 30px 10px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-align: center;
+}
+
+.dash-empty-icon {
+  font-size: 26px;
+  opacity: 0.55;
+  line-height: 1;
+}
+
+.dash-empty-text {
+  max-width: 220px;
 }
 
 .dash-row-2col .panel-card,
@@ -147,22 +192,30 @@ h1 {
 }
 
 .pipeline-column {
-  background: var(--surface-muted);
+  background: #ffffff;
+  border: 1px solid var(--line);
   border-radius: 10px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   min-width: 150px;
+  max-height: 260px;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.pipeline-column:hover {
+  box-shadow: 0 6px 16px rgba(23, 27, 46, 0.08);
 }
 
 .pipeline-col-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 10px;
+  padding: 9px 10px;
   color: white;
   font-size: 12px;
   font-weight: 700;
+  background: linear-gradient(135deg, var(--col-color), color-mix(in srgb, var(--col-color) 65%, #000));
 }
 
 .pipeline-col-count {
@@ -178,8 +231,7 @@ h1 {
   flex-direction: column;
   gap: 6px;
   flex: 1;
-  min-height: 90px;
-  max-height: 260px;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -247,11 +299,18 @@ h1 {
 .pipeline-empty {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   font-size: 12px;
   color: var(--text-secondary);
-  opacity: 0.7;
+  opacity: 0.6;
+}
+
+.pipeline-empty-icon {
+  font-size: 18px;
+  opacity: 0.6;
 }
 
 .mini-cal-weekdays {
@@ -616,6 +675,43 @@ h1 {
   white-space: nowrap;
 }
 
+.snapshot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.snapshot-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px 8px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.12s ease;
+}
+
+.snapshot-tile:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.snapshot-value {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.snapshot-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
 .activity-list {
   list-style: none;
   margin: 0;
@@ -648,6 +744,71 @@ h1 {
   font-size: 11px;
   color: var(--text-secondary);
   white-space: nowrap;
+}
+
+.followups-filter {
+  max-width: 170px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.followups-table th:first-child,
+.followups-table td:first-child {
+  width: 30px;
+}
+
+.followup-check {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.action-type-chip-mini {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+tr.row-overdue {
+  background: color-mix(in srgb, var(--warn) 8%, transparent);
+  border-left: 3px solid var(--warn);
+}
+
+tr.row-overdue:hover {
+  background: color-mix(in srgb, var(--warn) 15%, transparent);
+}
+
+tr.row-today {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.today-blink-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #E5484D;
+  margin-right: 6px;
+  vertical-align: middle;
+  animation: blinkDot 1s ease-in-out infinite;
+}
+
+@keyframes blinkDot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+.overdue-tag {
+  display: inline-block;
+  margin-left: 8px;
+  background: var(--warn-dim);
+  color: var(--warn);
+  border-radius: 100px;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  vertical-align: middle;
 }
 
 @media (max-width: 960px) {

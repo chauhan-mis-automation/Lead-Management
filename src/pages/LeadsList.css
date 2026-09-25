@@ -228,6 +228,17 @@
   white-space: nowrap;
 }
 
+.priority-badge {
+  display: inline-block;
+  background: color-mix(in srgb, var(--badge-color) 14%, transparent);
+  color: var(--badge-color);
+  border: 1px solid color-mix(in srgb, var(--badge-color) 35%, transparent);
+  border-radius: 100px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .form-error {
   background: rgba(255, 107, 107, 0.10);
   border: 1px solid rgba(255, 107, 107, 0.35);

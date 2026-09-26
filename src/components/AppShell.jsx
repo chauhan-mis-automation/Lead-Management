@@ -16,7 +16,9 @@ const NAV_ITEMS = [
   { to: '/quotations', label: 'Quotations', icon: '▤', roles: ['admin', 'subadmin', 'sales', 'bde'] },
   { to: '/products', label: 'Products & Services', icon: '▧', roles: ['admin', 'subadmin', 'sales', 'bde', 'calling'] },
   { to: '/users', label: 'Users', icon: '◐', roles: ['admin'] },
-  { to: '/reports', label: 'Reports & MIS', icon: '◓', roles: ['admin', 'subadmin'] }
+  { to: '/reports', label: 'Reports', icon: '◓', roles: ['admin', 'subadmin'] },
+  { to: '/reports-hub', label: 'Reports Hub', icon: '⬒', roles: ['admin', 'subadmin'] },
+  { to: '/login-activity', label: 'Login Activity', icon: '◔', roles: ['admin', 'subadmin'] }
 ]
 
 export default function AppShell() {

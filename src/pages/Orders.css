@@ -32,6 +32,7 @@
 
 .orders-summary {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 20px;
 }
@@ -42,7 +43,15 @@
   border-radius: 12px;
   padding: 14px 20px;
   box-shadow: var(--shadow-card);
+  flex: 1 1 140px;
   min-width: 140px;
+}
+
+@media (max-width: 480px) {
+  .orders-summary-item {
+    flex: 1 1 calc(50% - 6px);
+    min-width: 0;
+  }
 }
 
 .orders-summary-value {

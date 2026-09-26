@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import { supabase } from '../supabaseClient'
-import { STATUS_OPTIONS, sourceLabel, statusMeta, ACTION_TYPE_OPTIONS, actionTypeMeta, quotationStatusMeta, priorityMeta } from '../lib/constants'
+import { STATUS_OPTIONS, sourceLabel, statusMeta, ACTION_TYPE_OPTIONS, actionTypeMeta, quotationStatusMeta, priorityMeta, temperatureMeta, closingTatLabel } from '../lib/constants'
 import QuotationFormModal from '../components/QuotationFormModal'
 import QuotationDetailModal from '../components/QuotationDetailModal'
 import Swal from 'sweetalert2'
@@ -333,15 +333,26 @@ export default function LeadDetail() {
         <div className="info-card">
           <h3>Lead Info</h3>
           <dl>
-            <dt>Mobile</dt>
+            <dt>Client Name</dt><dd>{lead.client_name || '—'}</dd>
+            <dt>Mobile No.</dt>
             <dd>
               {lead.mobile ? (
                 <a href={`tel:${lead.mobile}`} className="tel-link">📞 {lead.mobile}</a>
               ) : '—'}
             </dd>
             <dt>Email</dt><dd>{lead.email || '—'}</dd>
+            <dt>Type of Industry</dt><dd>{lead.industry_type || '—'}</dd>
+            <dt>City / State</dt><dd>{[lead.city, lead.state].filter(Boolean).join(', ') || '—'}</dd>
             <dt>Source</dt><dd>{sourceLabel(lead.source)}</dd>
             <dt>Product</dt><dd>{lead.product?.product_name || '—'}</dd>
+            <dt>Lead Temperature</dt>
+            <dd>
+              {temperatureMeta(lead.lead_temperature) ? (
+                <span className="priority-badge" style={{ '--badge-color': temperatureMeta(lead.lead_temperature).color }}>
+                  {temperatureMeta(lead.lead_temperature).icon} {temperatureMeta(lead.lead_temperature).label}
+                </span>
+              ) : '—'}
+            </dd>
             <dt>Priority</dt>
             <dd>
               <span className="priority-badge" style={{ '--badge-color': priorityMeta(lead.priority).color }}>
@@ -349,6 +360,8 @@ export default function LeadDetail() {
               </span>
             </dd>
             <dt>Budget</dt><dd>{lead.budget ? `₹${Number(lead.budget).toLocaleString('en-IN')}` : '—'}</dd>
+            <dt>Expected Deal Value</dt><dd>{lead.expected_deal_value ? `₹${Number(lead.expected_deal_value).toLocaleString('en-IN')}` : '—'}</dd>
+            <dt>Closing TAT</dt><dd>{lead.closing_tat ? closingTatLabel(lead.closing_tat) : '—'}</dd>
             <dt>Requirement</dt><dd>{lead.requirement || '—'}</dd>
             <dt>Created</dt><dd>{new Date(lead.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</dd>
             <dt>Next Follow-up</dt>

@@ -3,18 +3,25 @@ import { useNavigate } from 'react-router-dom'
 import * as XLSX from 'xlsx'
 import { useAuth } from '../AuthContext'
 import { supabase } from '../supabaseClient'
-import { STATUS_OPTIONS, SOURCE_OPTIONS, PRIORITY_OPTIONS } from '../lib/constants'
+import { STATUS_OPTIONS, SOURCE_OPTIONS, PRIORITY_OPTIONS, LEAD_TEMPERATURE_OPTIONS, CLOSING_TAT_OPTIONS } from '../lib/constants'
 import './BulkUpload.css'
 
 const HEADER_ALIASES = {
-  'lead name': 'lead_name', 'name': 'lead_name', 'leadname': 'lead_name',
-  'mobile': 'mobile', 'phone': 'mobile', 'mobile number': 'mobile', 'contact': 'mobile', 'whatsapp': 'mobile',
+  'lead name': 'lead_name', 'name': 'lead_name', 'leadname': 'lead_name', 'customer name': 'lead_name',
+  'client name': 'client_name', 'client': 'client_name',
+  'mobile': 'mobile', 'phone': 'mobile', 'mobile number': 'mobile', 'mobile no': 'mobile', 'mobile no.': 'mobile', 'contact': 'mobile', 'whatsapp': 'mobile',
   'email': 'email', 'email address': 'email',
   'company': 'company', 'company name': 'company',
+  'type of industry': 'industry_type', 'industry': 'industry_type', 'industry type': 'industry_type',
+  'city': 'city',
+  'state': 'state',
   'source': 'source', 'lead source': 'source',
   'status': 'status', 'lead status': 'status',
+  'lead temperature': 'lead_temperature', 'temperature': 'lead_temperature',
   'priority': 'priority', 'lead priority': 'priority',
   'budget': 'budget',
+  'expected deal value': 'expected_deal_value', 'deal value': 'expected_deal_value',
+  'closing tat': 'closing_tat', 'tat': 'closing_tat',
   'requirement': 'requirement', 'need': 'requirement', 'notes': 'requirement',
   'product': 'product', 'product/service': 'product', 'product name': 'product', 'service': 'product',
   'assigned to': 'assigned_to', 'assigned user': 'assigned_to', 'assignee': 'assigned_to',
@@ -28,6 +35,10 @@ const VALID_SOURCE_VALUES = SOURCE_OPTIONS.map((s) => s.value)
 const SOURCE_LABEL_TO_VALUE = Object.fromEntries(SOURCE_OPTIONS.map((s) => [s.label.toLowerCase(), s.value]))
 const VALID_PRIORITY_VALUES = PRIORITY_OPTIONS.map((p) => p.value)
 const PRIORITY_LABEL_TO_VALUE = Object.fromEntries(PRIORITY_OPTIONS.map((p) => [p.label.toLowerCase(), p.value]))
+const VALID_TEMP_VALUES = LEAD_TEMPERATURE_OPTIONS.map((t) => t.value)
+const TEMP_LABEL_TO_VALUE = Object.fromEntries(LEAD_TEMPERATURE_OPTIONS.map((t) => [t.label.toLowerCase(), t.value]))
+const VALID_TAT_VALUES = CLOSING_TAT_OPTIONS.map((t) => t.value)
+const TAT_LABEL_TO_VALUE = Object.fromEntries(CLOSING_TAT_OPTIONS.map((t) => [t.label.toLowerCase().replace(/\s+/g, ''), t.value]))
 
 function normalizeRow(rawRow) {
   const row = {}
@@ -68,6 +79,23 @@ function resolvePriority(value) {
   if (VALID_PRIORITY_VALUES.includes(v)) return v
   if (PRIORITY_LABEL_TO_VALUE[v]) return PRIORITY_LABEL_TO_VALUE[v]
   return 'medium'
+}
+
+function resolveTemperature(value) {
+  if (!value) return null
+  const v = value.toLowerCase().trim()
+  if (VALID_TEMP_VALUES.includes(v)) return v
+  if (TEMP_LABEL_TO_VALUE[v]) return TEMP_LABEL_TO_VALUE[v]
+  return null
+}
+
+function resolveClosingTat(value) {
+  if (!value) return null
+  const v = value.toLowerCase().trim()
+  if (VALID_TAT_VALUES.includes(v)) return v
+  const compact = v.replace(/\s+/g, '')
+  if (TAT_LABEL_TO_VALUE[compact]) return TAT_LABEL_TO_VALUE[compact]
+  return null
 }
 
 // Excel stores dates as a serial day-count from 1899-12-30. When a cell isn't
@@ -171,6 +199,7 @@ export default function BulkUpload() {
           const norm = normalizeRow(r)
           const issues = []
           if (!norm.lead_name) issues.push('Missing lead name')
+          if (!norm.mobile) issues.push('Missing mobile no.')
 
           const followupRawProvided = norm.next_followup_date !== undefined && norm.next_followup_date !== null && String(norm.next_followup_date).trim() !== ''
           const next_followup_date = parseDate(norm.next_followup_date)
@@ -184,13 +213,20 @@ export default function BulkUpload() {
           return {
             _row: i + 2,
             lead_name: norm.lead_name || '',
+            client_name: norm.client_name || '',
             mobile: norm.mobile || '',
             email: norm.email || '',
             company: norm.company || '',
+            industry_type: norm.industry_type || '',
+            city: norm.city || '',
+            state: norm.state || '',
             source: resolveSource(norm.source),
             status: resolveStatus(norm.status),
+            lead_temperature: resolveTemperature(norm.lead_temperature),
             priority: resolvePriority(norm.priority),
             budget: norm.budget ? Number(norm.budget.replace(/[^0-9.]/g, '')) || null : null,
+            expected_deal_value: norm.expected_deal_value ? Number(norm.expected_deal_value.replace(/[^0-9.]/g, '')) || null : null,
+            closing_tat: resolveClosingTat(norm.closing_tat),
             requirement: norm.requirement || '',
             product_name,
             assigned_name,
@@ -224,13 +260,20 @@ export default function BulkUpload() {
     setUploading(true)
     const payload = validRows.map((r) => ({
       lead_name: r.lead_name,
+      client_name: r.client_name || null,
       mobile: r.mobile || null,
       email: r.email || null,
       company: r.company || null,
+      industry_type: r.industry_type || null,
+      city: r.city || null,
+      state: r.state || null,
       source: r.source,
       status: r.status,
+      lead_temperature: r.lead_temperature,
       priority: r.priority,
       budget: r.budget,
+      expected_deal_value: r.expected_deal_value,
+      closing_tat: r.closing_tat,
       requirement: r.requirement || null,
       product_id: resolveProductId(r.product_name),
       assigned_to: resolveAssignedTo(r.assigned_name),
@@ -254,8 +297,8 @@ export default function BulkUpload() {
   function downloadTemplate() {
     const wb = XLSX.utils.book_new()
     const ws = XLSX.utils.aoa_to_sheet([
-      ['Lead Name', 'Mobile', 'Email', 'Company', 'Source', 'Status', 'Priority', 'Budget', 'Requirement', 'Product', 'Assigned To', 'Next Follow-up Date'],
-      ['Rahul Sharma', '9876543210', 'rahul@example.com', 'ABC Traders', 'Website Form', 'New Lead', 'High', '30000', 'Needs a new website', 'Website Development', 'Priya Singh', '2026-09-20']
+      ['Customer Name', 'Client Name', 'Mobile No.', 'Email', 'Company', 'Type of Industry', 'City', 'State', 'Source', 'Status', 'Lead Temperature', 'Priority', 'Budget', 'Expected Deal Value', 'Closing TAT', 'Requirement', 'Product', 'Assigned To', 'Next Follow-up Date'],
+      ['Rahul Sharma', 'Rahul Sharma', '9876543210', 'rahul@example.com', 'ABC Traders', 'Retail', 'Mumbai', 'Maharashtra', 'Website Form', 'New Lead', 'Hot', 'High', '30000', '35000', '15 Days', 'Needs a new website', 'Website Development', 'Priya Singh', '2026-09-20']
     ])
     XLSX.utils.book_append_sheet(wb, ws, 'Leads')
     XLSX.writeFile(wb, 'lead_upload_template.xlsx')
@@ -291,7 +334,7 @@ export default function BulkUpload() {
           <div className="info-card">
             <h3>1. Choose File</h3>
             <p className="bulk-hint">
-              Expected columns: <strong>Lead Name</strong> (required), Mobile, Email, Company, Source, Status, Priority, Budget, Requirement, Product, Assigned To, Next Follow-up Date.
+              Expected columns: <strong>Customer Name</strong> (required), Client Name, <strong>Mobile No.</strong> (required), Email, Company, Type of Industry, City, State, Source, Status, Lead Temperature (Hot/Warm/Cold), Priority, Budget, Expected Deal Value, Closing TAT (7/15/30/60 Days), Requirement, Product, Assigned To, Next Follow-up Date.
               Column names are matched flexibly — "Name", "Phone", "Service" etc. also work. Product and Assigned To must match an existing Product/User name exactly (spelling can differ in case) — the preview below will flag any that don't match.
               Next Follow-up Date accepts a real Excel date cell, or text like <strong>25/09/2026</strong> or <strong>2026-09-25 14:30</strong>.
             </p>
@@ -315,13 +358,20 @@ export default function BulkUpload() {
                   <thead>
                     <tr>
                       <th>Row</th>
-                      <th>Lead Name</th>
-                      <th>Mobile</th>
+                      <th>Customer Name</th>
+                      <th>Client Name</th>
+                      <th>Mobile No.</th>
                       <th>Company</th>
+                      <th>Industry</th>
+                      <th>City</th>
+                      <th>State</th>
                       <th>Source</th>
                       <th>Status</th>
+                      <th>Temperature</th>
                       <th>Priority</th>
                       <th>Budget</th>
+                      <th>Deal Value</th>
+                      <th>Closing TAT</th>
                       <th>Product</th>
                       <th>Assigned To</th>
                       <th>Next Follow-up</th>
@@ -333,12 +383,19 @@ export default function BulkUpload() {
                       <tr key={r._row} className={r.valid ? '' : 'row-invalid'}>
                         <td>{r._row}</td>
                         <td>{r.lead_name || '—'}</td>
+                        <td>{r.client_name || '—'}</td>
                         <td>{r.mobile || '—'}</td>
                         <td>{r.company || '—'}</td>
+                        <td>{r.industry_type || '—'}</td>
+                        <td>{r.city || '—'}</td>
+                        <td>{r.state || '—'}</td>
                         <td>{r.source}</td>
                         <td>{r.status}</td>
+                        <td>{r.lead_temperature || '—'}</td>
                         <td>{r.priority}</td>
                         <td>{r.budget ? `₹${r.budget.toLocaleString('en-IN')}` : '—'}</td>
+                        <td>{r.expected_deal_value ? `₹${r.expected_deal_value.toLocaleString('en-IN')}` : '—'}</td>
+                        <td>{r.closing_tat || '—'}</td>
                         <td>
                           {r.product_name || '—'}
                           {r.product_unmatched && <div className="tag-warn">Not found in Products — will save without product</div>}

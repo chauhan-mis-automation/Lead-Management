@@ -46,6 +46,34 @@ function buildMonthGrid(year, month) {
   })
 }
 
+// Smoothly animates a numeric stat from 0 up to its target value using an
+// eased requestAnimationFrame loop, so the KPI cards feel alive on load
+// instead of popping straight to a static number.
+function useCountUp(target, duration = 800) {
+  const [display, setDisplay] = useState(0)
+  useEffect(() => {
+    if (typeof target !== 'number' || Number.isNaN(target)) return
+    let raf
+    const startTime = performance.now()
+    function tick(now) {
+      const progress = Math.min((now - startTime) / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setDisplay(Math.round(target * eased))
+      if (progress < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [target, duration])
+  return display
+}
+
+function AnimatedStat({ value, format }) {
+  const isNumber = typeof value === 'number'
+  const animated = useCountUp(isNumber ? value : 0)
+  if (!isNumber) return <>{value}</>
+  return <>{format ? format(animated) : animated.toLocaleString('en-IN')}</>
+}
+
 function EmptyState({ icon, text }) {
   return (
     <div className="dash-empty">
@@ -78,7 +106,7 @@ export default function Dashboard() {
   const loadDashboard = useCallback(async () => {
     setLoading(true)
 
-    let leadsQuery = supabase.from('leads').select('id, lead_name, company, mobile, status, source, assigned_to, product_id, next_followup_date, next_action_type, next_action_location, created_at')
+    let leadsQuery = supabase.from('leads').select('id, lead_name, company, mobile, status, source, city, assigned_to, product_id, next_followup_date, next_action_type, next_action_location, created_at')
     if (!isManager && session?.user?.id) leadsQuery = leadsQuery.eq('assigned_to', session.user.id)
 
     let ordersQuery = supabase
@@ -149,8 +177,34 @@ export default function Dashboard() {
     { label: 'Overdue Follow-ups', value: overdue, icon: <IconWarn />, color: '#E5484D' },
     { label: 'Meetings Scheduled', value: meetingsScheduled, icon: <IconCalendar />, color: '#9B7FE0' },
     { label: 'Converted to Order', value: won, icon: <IconCheck />, color: '#2DBE7E' },
-    { label: 'Total Orders Value', value: `₹${totalOrdersValue.toLocaleString('en-IN')}`, icon: <IconRupee />, color: '#3AA0FF' }
+    { label: 'Total Orders Value', value: totalOrdersValue, format: (n) => `₹${n.toLocaleString('en-IN')}`, icon: <IconRupee />, color: '#3AA0FF' }
   ]
+
+  // Funnel stages collapsed into 5 clean tapering stages (most CRMs group
+  // "Contacted/Follow-up/Hot/Warm" together) so the funnel actually tapers
+  // visually instead of showing 10 thin slivers.
+  const FUNNEL_STAGES = [
+    { key: 'new', label: 'New Lead', color: '#5B8DEF', statuses: ['new_lead'] },
+    { key: 'contacted', label: 'Contacted', color: '#3AA0FF', statuses: ['contacted', 'followup_required', 'hot_lead', 'warm_lead'] },
+    { key: 'proposal', label: 'Proposal / Negotiation', color: '#9B7FE0', statuses: ['proposal_sent', 'negotiation'] },
+    { key: 'won', label: 'Won Order', color: '#2DD9C4', statuses: ['won_order'] }
+  ]
+  const funnelData = FUNNEL_STAGES
+    .map((s) => ({ name: s.label, value: leads.filter((l) => s.statuses.includes(l.status)).length, fill: s.color }))
+    .filter((s) => s.value > 0)
+
+  const cityWise = Object.entries(
+    leads.reduce((acc, l) => {
+      const city = l.city?.trim() || 'Not Specified'
+      acc[city] = (acc[city] || 0) + 1
+      return acc
+    }, {})
+  )
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 7)
+
+  const recentLeads = [...leads].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 6)
 
   const sourceData = SOURCE_OPTIONS
     .map((s) => ({ name: s.label, value: leads.filter((l) => l.source === s.value).length }))
@@ -249,10 +303,10 @@ export default function Dashboard() {
 
       <div className="stat-grid">
         {statCards.map((c) => (
-          <button className="stat-card" key={c.label} onClick={() => openStatModal(c.label)}>
-            <div className="stat-icon" style={{ '--icon-color': c.color }}>{c.icon}</div>
-            <div>
-              <div className="stat-value">{c.value}</div>
+          <button className="stat-card" key={c.label} style={{ '--icon-color': c.color }} onClick={() => openStatModal(c.label)}>
+            <div className="stat-icon">{c.icon}</div>
+            <div className="stat-card-body">
+              <div className="stat-value"><AnimatedStat value={c.value} format={c.format} /></div>
               <div className="stat-label">{c.label}</div>
             </div>
           </button>
@@ -346,8 +400,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      <div className="dash-row-2col">
-        <div className="panel-card pipeline-panel">
+      <div className="panel-card pipeline-panel">
           <div className="panel-head">
             <h3>Lead Pipeline</h3>
             <button className="link-btn" onClick={() => navigate('/leads')}>View All</button>
@@ -390,7 +443,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="dash-side-col">
+      <div className="dash-row-2col dash-row-2col-even">
           <div className="panel-card">
             <div className="panel-head">
               <h3>Call Calendar</h3>
@@ -466,7 +519,6 @@ export default function Dashboard() {
             )}
           </div>
         </div>
-      </div>
 
       <div className="dash-row-2col">
         <div className="panel-card">
@@ -548,14 +600,24 @@ export default function Dashboard() {
               <div className="donut-chart">
                 <ResponsiveContainer width="100%" height={170}>
                   <PieChart>
-                    <Pie data={sourceData} dataKey="value" nameKey="name" innerRadius={48} outerRadius={76} paddingAngle={2}>
-                      {sourceData.map((_, i) => <Cell key={i} fill={SOURCE_COLORS[i % SOURCE_COLORS.length]} />)}
+                    <Pie
+                      data={sourceData}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={48}
+                      outerRadius={76}
+                      paddingAngle={3}
+                      cornerRadius={6}
+                      animationDuration={800}
+                      animationEasing="ease-out"
+                    >
+                      {sourceData.map((_, i) => <Cell key={i} fill={SOURCE_COLORS[i % SOURCE_COLORS.length]} stroke="var(--surface)" strokeWidth={2} />)}
                     </Pie>
                     <Tooltip />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="donut-center">
-                  <span className="donut-total">{total}</span>
+                  <span className="donut-total"><AnimatedStat value={total} /></span>
                   <span className="donut-total-label">Total Leads</span>
                 </div>
               </div>
@@ -599,20 +661,100 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <div className="panel-card">
+        <div className="panel-head"><h3>Sales Funnel</h3></div>
+        {funnelData.length === 0 ? (
+          <EmptyState icon="🔻" text="No leads in the pipeline yet." />
+        ) : (
+          <div className="funnel-stack">
+            {funnelData.map((f, i) => {
+              const maxValue = funnelData[0].value
+              const widthPct = maxValue ? Math.max(30, Math.round((f.value / maxValue) * 100)) : 100
+              const pctOfTotal = total ? Math.round((f.value / total) * 100) : 0
+              return (
+                <div className="funnel-row" key={f.name}>
+                  <div className="funnel-track">
+                    <div
+                      className="funnel-bar"
+                      style={{ width: `${widthPct}%`, background: f.fill, animationDelay: `${i * 0.08}s` }}
+                    >
+                      <span className="funnel-bar-value">{f.value}</span>
+                    </div>
+                  </div>
+                  <div className="funnel-row-meta">
+                    <span className="funnel-row-label">{f.name}</span>
+                    <span className="funnel-row-pct">{pctOfTotal}%</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="dash-row-2col">
+        <div className="panel-card">
+          <div className="panel-head">
+            <h3>Recent Leads</h3>
+            <button className="link-btn" onClick={() => navigate('/leads')}>View All</button>
+          </div>
+          {recentLeads.length === 0 ? (
+            <EmptyState icon="🧲" text="No leads yet." />
+          ) : (
+            <div className="recent-orders-list">
+              {recentLeads.map((l) => {
+                const meta = statusMeta(l.status)
+                return (
+                  <div key={l.id} className="recent-order-item" onClick={() => navigate(`/leads/${l.id}`)} style={{ cursor: 'pointer' }}>
+                    <div>
+                      <div className="recent-order-number">{l.lead_name}</div>
+                      <div className="recent-order-company">{l.company || '—'}</div>
+                    </div>
+                    <div className="recent-order-value">{new Date(l.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</div>
+                    <span className="status-badge" style={{ '--badge-color': meta.color }}>{meta.label}</span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="panel-card">
+          <div className="panel-head"><h3>City-wise Leads</h3></div>
+          {cityWise.length === 0 ? (
+            <EmptyState icon="🏙️" text="No city data yet." />
+          ) : (
+            <div className="mobile-card-table">
+              <table className="upcoming-table">
+                <thead><tr><th>City</th><th>Leads</th></tr></thead>
+                <tbody>
+                  {cityWise.map((c) => (
+                    <tr key={c.name}>
+                      <td data-label="City">{c.name}</td>
+                      <td data-label="Leads">{c.value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="dash-row-2col">
         <div className="panel-card">
           <div className="panel-head"><h3>Business Snapshot</h3></div>
           <div className="snapshot-grid">
             <button className="snapshot-tile" onClick={() => navigate('/products')}>
-              <span className="snapshot-value">{products.length}</span>
+              <span className="snapshot-value"><AnimatedStat value={products.length} /></span>
               <span className="snapshot-label">Active Products</span>
             </button>
             <button className="snapshot-tile" onClick={() => navigate('/customers')}>
-              <span className="snapshot-value">{customerCount}</span>
+              <span className="snapshot-value"><AnimatedStat value={customerCount} /></span>
               <span className="snapshot-label">Customers</span>
             </button>
             <button className="snapshot-tile" onClick={() => navigate('/orders')}>
-              <span className="snapshot-value">{orders.length}</span>
+              <span className="snapshot-value"><AnimatedStat value={orders.length} /></span>
               <span className="snapshot-label">Total Orders</span>
             </button>
           </div>
@@ -628,11 +770,17 @@ export default function Dashboard() {
           ) : (
             <ResponsiveContainer width="100%" height={190}>
               <BarChart data={topProducts} layout="vertical" margin={{ left: 10, right: 16 }}>
+                <defs>
+                  <linearGradient id="topProductsFill" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#5B8DEF" />
+                    <stop offset="100%" stopColor="#3AA0FF" />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" horizontal={false} />
                 <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} stroke="var(--text-secondary)" />
                 <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11 }} stroke="var(--text-secondary)" />
-                <Tooltip />
-                <Bar dataKey="leads" name="Leads" fill="#5B8DEF" radius={[0, 6, 6, 0]} barSize={16} />
+                <Tooltip cursor={{ fill: 'var(--surface-muted)' }} />
+                <Bar dataKey="leads" name="Leads" fill="url(#topProductsFill)" radius={[0, 6, 6, 0]} barSize={16} animationDuration={800} animationEasing="ease-out" />
               </BarChart>
             </ResponsiveContainer>
           )}

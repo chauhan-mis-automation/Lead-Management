@@ -86,7 +86,7 @@ export default function Users() {
       {loading ? (
         <p className="users-empty">Loading users…</p>
       ) : (
-        <div className="users-table-wrap">
+        <div className="users-table-wrap mobile-card-table">
           <table className="users-table">
             <thead>
               <tr>
@@ -103,19 +103,19 @@ export default function Users() {
                 const isSelf = u.id === session?.user?.id
                 return (
                   <tr key={u.id}>
-                    <td>
+                    <td data-label="Name">
                       <div className="user-name-cell">
                         {u.full_name}
                         {isSelf && <span className="you-tag">You</span>}
                       </div>
                     </td>
-                    <td>{u.email}</td>
-                    <td>
+                    <td data-label="Email">{u.email}</td>
+                    <td data-label="Role">
                       <span className="role-badge" style={{ '--badge-color': meta.color }}>
                         {meta.label}
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <span className={'status-dot' + (u.is_active ? ' active' : ' inactive')}>
                         {u.is_active ? 'Active' : 'Inactive'}
                       </span>

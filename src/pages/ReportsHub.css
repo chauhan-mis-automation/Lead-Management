@@ -1,0 +1,89 @@
+.rh-tabbar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 2px;
+}
+
+.rh-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.rh-tab:hover {
+  color: var(--text-primary);
+}
+
+.rh-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.rh-mb {
+  margin-bottom: 16px;
+}
+
+.rh-export-field {
+  margin-left: auto;
+}
+
+.rh-preset-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-ghost {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--text-secondary);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.rh-scroll-table {
+  overflow-x: auto;
+}
+
+.rh-scroll-table .reports-table {
+  min-width: 640px;
+}
+
+.rh-growth {
+  font-weight: 700;
+}
+
+.rh-growth.up {
+  color: var(--accent);
+}
+
+.rh-growth.down {
+  color: var(--warn);
+}
+
+@media (max-width: 640px) {
+  .rh-export-field {
+    margin-left: 0;
+  }
+}

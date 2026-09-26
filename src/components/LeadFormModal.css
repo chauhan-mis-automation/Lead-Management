@@ -49,6 +49,24 @@
   background: var(--surface);
 }
 
+.lead-form-card {
+  max-width: 760px;
+}
+
+.form-section-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 22px 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.form-section-title:first-of-type {
+  margin-top: 0;
+}
+
 .modal-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

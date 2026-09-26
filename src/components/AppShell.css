@@ -108,6 +108,29 @@
   top: var(--header-height, 65px);
   height: calc(100vh - var(--header-height, 65px));
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(94, 106, 140, 0.35) transparent;
+}
+
+.shell-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.shell-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.shell-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(94, 106, 140, 0.3);
+  border-radius: 100px;
+}
+
+.shell-sidebar:hover::-webkit-scrollbar-thumb {
+  background: rgba(94, 106, 140, 0.55);
+}
+
+.shell-sidebar::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
 }
 
 .shell-brand {

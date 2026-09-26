@@ -72,6 +72,27 @@ export function priorityMeta(value) {
   return PRIORITY_OPTIONS.find((p) => p.value === value) || PRIORITY_OPTIONS[1]
 }
 
+export const LEAD_TEMPERATURE_OPTIONS = [
+  { value: 'hot', label: 'Hot', icon: '🔥', color: '#E5484D' },
+  { value: 'warm', label: 'Warm', icon: '🌤', color: '#F5A623' },
+  { value: 'cold', label: 'Cold', icon: '❄️', color: '#5B8DEF' }
+]
+
+export function temperatureMeta(value) {
+  return LEAD_TEMPERATURE_OPTIONS.find((t) => t.value === value) || null
+}
+
+export const CLOSING_TAT_OPTIONS = [
+  { value: '7_days', label: '7 Days' },
+  { value: '15_days', label: '15 Days' },
+  { value: '30_days', label: '30 Days' },
+  { value: '60_days', label: '60 Days' }
+]
+
+export function closingTatLabel(value) {
+  return CLOSING_TAT_OPTIONS.find((t) => t.value === value)?.label || value || '—'
+}
+
 export const PAYMENT_STATUS_OPTIONS = [
   { value: 'pending', label: 'Pending', color: '#E5484D' },
   { value: 'partial', label: 'Partial', color: '#F5A623' },

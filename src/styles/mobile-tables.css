@@ -1,0 +1,91 @@
+/* ============================================================
+   Mobile Card-View for Data Tables
+   Apply the "mobile-card-table" class to the SAME element that
+   currently has the *-table-wrap / overflow-x:auto class, or
+   directly to the <table>'s wrapper <div>.
+   ============================================================ */
+@media (max-width: 860px) {
+  .mobile-card-table {
+    overflow-x: visible !important;
+  }
+
+  .mobile-card-table table {
+    display: block;
+    width: 100%;
+    /* !important because some pages (e.g. Reports Hub) set an explicit
+       min-width on the table for its desktop horizontal-scroll layout;
+       that min-width must never survive into the mobile card view, or the
+       "table" stays wide and its values get pushed off-screen while only
+       the data-label text stays visible. */
+    min-width: 0 !important;
+    border: none;
+  }
+
+  .mobile-card-table thead {
+    display: none;
+  }
+
+  .mobile-card-table tbody {
+    display: block;
+  }
+
+  .mobile-card-table tr {
+    display: block;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 4px 14px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow-card);
+  }
+
+  .mobile-card-table tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .mobile-card-table tr.clickable-row {
+    cursor: pointer;
+  }
+
+    .mobile-card-table td {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--line);
+    text-align: right;
+    min-width: 0;
+    white-space: normal !important;
+    flex-wrap: wrap;
+  }
+
+  .mobile-card-table td > * {
+    min-width: 0;
+  }
+
+  .mobile-card-table tr td:last-child {
+    border-bottom: none;
+  }
+
+  .mobile-card-table td::before {
+    content: attr(data-label);
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    text-align: left;
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+
+  /* A td with no data-label (e.g. a lone action/checkbox column) collapses
+     its label and lets the content take the row's full width. */
+  .mobile-card-table td:not([data-label])::before {
+    content: none;
+  }
+  .mobile-card-table td:not([data-label]) {
+    justify-content: flex-end;
+  }
+}

@@ -3,6 +3,7 @@ import { useAuth } from '../AuthContext'
 import { supabase } from '../supabaseClient'
 import { QUOTATION_STATUS_OPTIONS, quotationStatusMeta } from '../lib/constants'
 import { generateQuotationPDF } from '../lib/quotationPdf'
+import { printRecord, moneyFmt, dateFmt } from '../lib/printUtils'
 import QuotationFormModal from '../components/QuotationFormModal'
 import './Quotations.css'
 
@@ -77,6 +78,61 @@ export default function Quotations() {
     generateQuotationPDF(q, items)
   }
 
+  async function handlePrint(q) {
+    let items = expandedItems[q.id]
+    if (!items) {
+      const { data } = await supabase.from('quotation_items').select('*').eq('quotation_id', q.id).order('created_at')
+      items = data || []
+      setExpandedItems((prev) => ({ ...prev, [q.id]: items }))
+    }
+    const meta = quotationStatusMeta(q.status)
+
+    const itemsRows = items.length
+      ? items.map((it) => `
+          <tr>
+            <td>${it.item_name}</td>
+            <td class="num">${it.quantity}</td>
+            <td class="num">${moneyFmt(it.rate)}</td>
+            <td class="num">${it.discount_percent || 0}%</td>
+            <td class="num">${it.tax_percent || 0}%</td>
+            <td class="num">${moneyFmt(it.line_total)}</td>
+          </tr>`).join('')
+      : ''
+
+    const body = `
+      <div class="print-meta-grid">
+        <div><span>Company</span><strong>${q.company || q.lead?.lead_name || '—'}</strong></div>
+        <div><span>Lead</span><strong>${q.lead?.lead_name || '—'}</strong></div>
+        <div><span>Date</span><strong>${dateFmt(q.created_at)}</strong></div>
+        <div><span>Valid Until</span><strong>${q.valid_until ? dateFmt(q.valid_until) : '—'}</strong></div>
+        <div><span>Status</span><span class="print-badge">${meta.label}</span></div>
+      </div>
+
+      ${q.description ? `<h2>Description</h2><p class="print-notes">${q.description}</p>` : ''}
+
+      ${itemsRows ? `
+        <h2>Items</h2>
+        <table>
+          <thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Disc %</th><th class="num">Tax %</th><th class="num">Line Total</th></tr></thead>
+          <tbody>${itemsRows}</tbody>
+        </table>
+        <div class="print-totals">
+          <div><span>Subtotal</span><span>${moneyFmt(q.subtotal)}</span></div>
+          <div><span>Discount</span><span>- ${moneyFmt(q.discount_total)}</span></div>
+          <div><span>Tax</span><span>+ ${moneyFmt(q.tax_total)}</span></div>
+          <div class="print-grand"><span>Grand Total</span><span>${moneyFmt(q.amount)}</span></div>
+        </div>
+      ` : `
+        <h2>Amount</h2>
+        <div class="print-totals"><div class="print-grand"><span>Grand Total</span><span>${moneyFmt(q.amount)}</span></div></div>
+      `}
+
+      ${q.terms ? `<h2>Terms & Notes</h2><p class="print-notes">${q.terms}</p>` : ''}
+    `
+
+    printRecord(`Quotation ${q.quotation_number || ''}`, body, { docName: 'Quotation', docNumber: q.quotation_number || '' })
+  }
+
   async function handleConvertToOrder(q) {
     if (q.order_id) return
     setConverting(q.id)
@@ -146,7 +202,7 @@ export default function Quotations() {
           <span>Create one manually here, or from a lead's detail page.</span>
         </div>
       ) : (
-        <div className="quotes-table-wrap">
+        <div className="quotes-table-wrap mobile-card-table">
           <table className="quotes-table">
             <thead>
               <tr>
@@ -169,13 +225,14 @@ export default function Quotations() {
                       <td className="expand-cell">
                         <span className={'expand-arrow' + (isOpen ? ' open' : '')}>›</span>
                       </td>
-                      <td className="quote-number-cell">{q.quotation_number}</td>
-                      <td>{q.company || q.lead?.lead_name || '—'}</td>
-                      <td>{q.amount ? `₹${Number(q.amount).toLocaleString('en-IN')}` : '—'}</td>
-                      <td><span className="status-badge" style={{ '--badge-color': meta.color }}>{meta.label}</span></td>
-                      <td>{q.valid_until ? new Date(q.valid_until).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
+                      <td className="quote-number-cell" data-label="Quotation No.">{q.quotation_number}</td>
+                      <td data-label="Company">{q.company || q.lead?.lead_name || '—'}</td>
+                      <td data-label="Grand Total">{q.amount ? `₹${Number(q.amount).toLocaleString('en-IN')}` : '—'}</td>
+                      <td data-label="Status"><span className="status-badge" style={{ '--badge-color': meta.color }}>{meta.label}</span></td>
+                      <td data-label="Valid Until">{q.valid_until ? new Date(q.valid_until).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
                       <td onClick={(e) => e.stopPropagation()}>
                         <div className="quote-row-actions">
+                          <button className="icon-btn" title="Print" onClick={() => handlePrint(q)}>🖨</button>
                           <button className="icon-btn" title="Download PDF" onClick={() => handleDownloadPDF(q)}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>
                           </button>

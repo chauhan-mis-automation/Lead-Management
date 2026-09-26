@@ -185,11 +185,11 @@ export default function LeadsList() {
           <span>Try adjusting the filters, or add a new lead.</span>
         </div>
       ) : (
-        <div className="leads-table-wrap">
+        <div className="leads-table-wrap mobile-card-table">
           <table className="leads-table">
             <thead>
               <tr>
-                <th>Lead</th>
+                <th>Customer</th>
                 <th>Contact</th>
                 <th>Source</th>
                 <th>Priority</th>
@@ -204,11 +204,11 @@ export default function LeadsList() {
                 const meta = statusMeta(lead.status)
                 return (
                   <tr key={lead.id} className="clickable-row" onClick={() => navigate(`/leads/${lead.id}`)}>
-                    <td>
+                    <td data-label="Customer">
                       <div className="lead-name-cell">{lead.lead_name}</div>
                       {lead.company && <div className="lead-company-cell">{lead.company}</div>}
                     </td>
-                    <td>
+                    <td data-label="Contact">
                       <div>
                         {lead.mobile ? (
                           <a href={`tel:${lead.mobile}`} className="tel-link" onClick={(e) => e.stopPropagation()}>
@@ -218,19 +218,19 @@ export default function LeadsList() {
                       </div>
                       {lead.email && <div className="lead-email-cell">{lead.email}</div>}
                     </td>
-                    <td>{sourceLabel(lead.source)}</td>
-                    <td>
+                    <td data-label="Source">{sourceLabel(lead.source)}</td>
+                    <td data-label="Priority">
                       <span className="priority-badge" style={{ '--badge-color': priorityMeta(lead.priority).color }}>
                         {priorityMeta(lead.priority).label}
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <span className="status-badge" style={{ '--badge-color': meta.color }}>
                         {meta.label}
                       </span>
                     </td>
-                    <td>{lead.assigned_profile?.full_name || '—'}</td>
-                    <td>
+                    <td data-label="Assigned To">{lead.assigned_profile?.full_name || '—'}</td>
+                    <td data-label="Next Follow-up">
                       {lead.next_followup_date
                         ? new Date(lead.next_followup_date).toLocaleString('en-IN', {
                             day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'

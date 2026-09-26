@@ -58,17 +58,6 @@ export default function QuotationDetailModal({ quotationId, onClose }) {
       : ''
 
     const body = `
-      <div class="print-brand">
-        <div>
-          <h1>Wavexa Lead Generation</h1>
-          <div class="print-brand-sub">Lead to Order · Track · Follow Up · Convert</div>
-        </div>
-        <div class="print-doc-title">
-          <div class="print-doc-name">Quotation</div>
-          <div class="print-doc-number">${quotation.quotation_number || ''}</div>
-        </div>
-      </div>
-
       <div class="print-meta-grid">
         <div><span>Company</span><strong>${quotation.company || quotation.lead?.company || '—'}</strong></div>
         <div><span>Lead</span><strong>${quotation.lead?.lead_name || '—'}</strong></div>
@@ -99,7 +88,7 @@ export default function QuotationDetailModal({ quotationId, onClose }) {
       ${quotation.terms ? `<h2>Terms & Notes</h2><p class="print-notes">${quotation.terms}</p>` : ''}
     `
 
-    printRecord(`Quotation ${quotation.quotation_number || ''}`, body)
+    printRecord(`Quotation ${quotation.quotation_number || ''}`, body, { docName: 'Quotation', docNumber: quotation.quotation_number || '' })
   }
 
   return (

@@ -71,7 +71,7 @@ export default function Products() {
           <span>Add your company's products or services so they can be selected in Leads and Quotations.</span>
         </div>
       ) : (
-        <div className="products-table-wrap">
+        <div className="products-table-wrap mobile-card-table">
           <table className="products-table">
             <thead>
               <tr>
@@ -87,15 +87,15 @@ export default function Products() {
             <tbody>
               {filtered.map((p) => (
                 <tr key={p.id}>
-                  <td>
+                  <td data-label="Product / Service">
                     <div className="product-name-cell">{p.product_name}</div>
                     {p.description && <div className="product-desc-cell">{p.description}</div>}
                   </td>
-                  <td>{p.category || '—'}</td>
-                  <td>{p.product_code || '—'}</td>
-                  <td>{formatPriceRange(p.price, p.price_max)}</td>
-                  <td>{p.tax_percent != null ? `${p.tax_percent}%` : '—'}</td>
-                  <td>
+                  <td data-label="Category">{p.category || '—'}</td>
+                  <td data-label="Code">{p.product_code || '—'}</td>
+                  <td data-label="Price">{formatPriceRange(p.price, p.price_max)}</td>
+                  <td data-label="Tax">{p.tax_percent != null ? `${p.tax_percent}%` : '—'}</td>
+                  <td data-label="Status">
                     <span className={'status-dot' + (p.is_active ? ' active' : ' inactive')}>
                       {p.is_active ? 'Active' : 'Inactive'}
                     </span>

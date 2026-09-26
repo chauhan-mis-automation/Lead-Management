@@ -119,7 +119,7 @@ export default function Reports() {
   if (!canView) {
     return (
       <div>
-        <h1>Reports & MIS</h1>
+        <h1>Reports</h1>
         <p className="reports-subtitle">This page is only available to Admin and Subadmin.</p>
       </div>
     )
@@ -226,7 +226,7 @@ export default function Reports() {
     <div>
       <div className="reports-header">
         <div>
-          <h1>Reports & MIS</h1>
+          <h1>Reports</h1>
           <p className="reports-subtitle">Sales performance for the selected period</p>
         </div>
         <button className="btn-primary" onClick={handleExport} disabled={loading || total === 0}>Export to Excel</button>
@@ -316,13 +316,14 @@ export default function Reports() {
               {sourceWise.length === 0 ? (
                 <p className="reports-note">No leads in this period.</p>
               ) : (
+                <div className="mobile-card-table">
                 <table className="reports-table">
                   <thead><tr><th>Source</th><th>Leads</th><th>%</th></tr></thead>
                   <tbody>
                     {sourceWise.map((s) => (
                       <tr key={s.label}>
-                        <td>{s.label}</td>
-                        <td>
+                        <td data-label="Source">{s.label}</td>
+                        <td data-label="Leads">
                           <button
                             className="reports-count-link"
                             onClick={() => setStatModal({ title: `${s.label} Leads`, kind: 'leads', items: s.items })}
@@ -330,11 +331,12 @@ export default function Reports() {
                             {s.count}
                           </button>
                         </td>
-                        <td>{s.pct}%</td>
+                        <td data-label="%">{s.pct}%</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
 
@@ -343,32 +345,34 @@ export default function Reports() {
               {bdeWise.length === 0 ? (
                 <p className="reports-note">No assigned leads in this period.</p>
               ) : (
+                <div className="mobile-card-table">
                 <table className="reports-table">
                   <thead><tr><th>Name</th><th>Total</th><th>Won</th><th>Lost</th><th>Conv.</th></tr></thead>
                   <tbody>
                     {bdeWise.map((u) => (
                       <tr key={u.id}>
-                        <td>{u.full_name}</td>
-                        <td>
+                        <td data-label="Name">{u.full_name}</td>
+                        <td data-label="Total">
                           <button className="reports-count-link" onClick={() => setStatModal({ title: `${u.full_name} — All Leads`, kind: 'leads', items: u.totalItems })}>
                             {u.total}
                           </button>
                         </td>
-                        <td>
+                        <td data-label="Won">
                           <button className="reports-count-link" onClick={() => setStatModal({ title: `${u.full_name} — Won Leads`, kind: 'leads', items: u.wonItems })}>
                             {u.won}
                           </button>
                         </td>
-                        <td>
+                        <td data-label="Lost">
                           <button className="reports-count-link" onClick={() => setStatModal({ title: `${u.full_name} — Lost Leads`, kind: 'leads', items: u.lostItems })}>
                             {u.lost}
                           </button>
                         </td>
-                        <td>{u.conv}%</td>
+                        <td data-label="Conv.">{u.conv}%</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
 
@@ -377,20 +381,22 @@ export default function Reports() {
               {productWise.length === 0 ? (
                 <p className="reports-note">No product-linked leads in this period.</p>
               ) : (
+                <div className="mobile-card-table">
                 <table className="reports-table">
                   <thead><tr><th>Product</th><th>Leads</th><th>Won</th><th>Conv.</th><th>Sales Value</th></tr></thead>
                   <tbody>
                     {productWise.map((p) => (
                       <tr key={p.name}>
-                        <td>{p.name}</td>
-                        <td>{p.total}</td>
-                        <td>{p.won}</td>
-                        <td>{p.conv}%</td>
-                        <td>₹{p.salesValue.toLocaleString('en-IN')}</td>
+                        <td data-label="Product">{p.name}</td>
+                        <td data-label="Leads">{p.total}</td>
+                        <td data-label="Won">{p.won}</td>
+                        <td data-label="Conv.">{p.conv}%</td>
+                        <td data-label="Sales Value">₹{p.salesValue.toLocaleString('en-IN')}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
           </div>
@@ -400,21 +406,23 @@ export default function Reports() {
             {pendingOrders.length === 0 ? (
               <p className="reports-note">No pending payments. 🎉</p>
             ) : (
+              <div className="mobile-card-table">
               <table className="reports-table">
                 <thead><tr><th>Order No.</th><th>Company</th><th>Order Value</th><th>Paid</th><th>Remaining</th><th>Status</th></tr></thead>
                 <tbody>
                   {pendingOrders.map((o) => (
                     <tr key={o.order_number}>
-                      <td>{o.order_number}</td>
-                      <td>{o.company || '—'}</td>
-                      <td>₹{Number(o.order_value || 0).toLocaleString('en-IN')}</td>
-                      <td>₹{Number(o.paid_amount || 0).toLocaleString('en-IN')}</td>
-                      <td>₹{Math.max(0, Number(o.order_value || 0) - Number(o.paid_amount || 0)).toLocaleString('en-IN')}</td>
-                      <td>{o.payment_status === 'partial' ? 'Partial' : 'Pending'}</td>
+                      <td data-label="Order No.">{o.order_number}</td>
+                      <td data-label="Company">{o.company || '—'}</td>
+                      <td data-label="Order Value">₹{Number(o.order_value || 0).toLocaleString('en-IN')}</td>
+                      <td data-label="Paid">₹{Number(o.paid_amount || 0).toLocaleString('en-IN')}</td>
+                      <td data-label="Remaining">₹{Math.max(0, Number(o.order_value || 0) - Number(o.paid_amount || 0)).toLocaleString('en-IN')}</td>
+                      <td data-label="Status">{o.payment_status === 'partial' ? 'Partial' : 'Pending'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
         </>

@@ -119,17 +119,6 @@ export default function Orders() {
       : ''
 
     const body = `
-      <div class="print-brand">
-        <div>
-          <h1>Wavexa Lead Generation</h1>
-          <div class="print-brand-sub">Lead to Order · Track · Follow Up · Convert</div>
-        </div>
-        <div class="print-doc-title">
-          <div class="print-doc-name">Order</div>
-          <div class="print-doc-number">${o.order_number}</div>
-        </div>
-      </div>
-
       <div class="print-meta-grid">
         <div><span>Company</span><strong>${o.company || o.lead?.lead_name || '—'}</strong></div>
         <div><span>Order Date</span><strong>${dateFmt(o.order_date)}</strong></div>
@@ -155,7 +144,7 @@ export default function Orders() {
       ` : ''}
     `
 
-    printRecord(`Order ${o.order_number}`, body)
+    printRecord(`Order ${o.order_number}`, body, { docName: 'Order', docNumber: o.order_number })
   }
 
   const filteredOrders = orders.filter((o) => {
@@ -234,7 +223,7 @@ export default function Orders() {
           <span>Orders are created automatically when a lead is marked "Won", or manually here.</span>
         </div>
       ) : (
-        <div className="orders-table-wrap">
+        <div className="orders-table-wrap mobile-card-table">
           <table className="orders-table">
             <thead>
               <tr>
@@ -261,13 +250,13 @@ export default function Orders() {
                       <td className="expand-cell">
                         <span className={'expand-arrow' + (isOpen ? ' open' : '')}>›</span>
                       </td>
-                      <td className="order-number-cell">{o.order_number}</td>
-                      <td>{o.company || o.lead?.lead_name || '—'}</td>
-                      <td>{o.order_value ? `₹${Number(o.order_value).toLocaleString('en-IN')}` : '—'}</td>
-                      <td>₹{Number(o.paid_amount || 0).toLocaleString('en-IN')}</td>
-                      <td className={remaining > 0 ? 'remaining-due' : ''}>₹{remaining.toLocaleString('en-IN')}</td>
-                      <td><span className="status-badge" style={{ '--badge-color': meta.color }}>{meta.label}</span></td>
-                      <td><span className="status-badge" style={{ '--badge-color': payMeta.color }}>{payMeta.label}</span></td>
+                      <td className="order-number-cell" data-label="Order No.">{o.order_number}</td>
+                      <td data-label="Company">{o.company || o.lead?.lead_name || '—'}</td>
+                      <td data-label="Value">{o.order_value ? `₹${Number(o.order_value).toLocaleString('en-IN')}` : '—'}</td>
+                      <td data-label="Paid">₹{Number(o.paid_amount || 0).toLocaleString('en-IN')}</td>
+                      <td className={remaining > 0 ? 'remaining-due' : ''} data-label="Remaining">₹{remaining.toLocaleString('en-IN')}</td>
+                      <td data-label="Status"><span className="status-badge" style={{ '--badge-color': meta.color }}>{meta.label}</span></td>
+                      <td data-label="Payment"><span className="status-badge" style={{ '--badge-color': payMeta.color }}>{payMeta.label}</span></td>
                       <td onClick={(e) => e.stopPropagation()}>
                         <div className="order-row-actions">
                           <button className="icon-btn" title="Print order" onClick={() => handlePrintOrder(o)}>🖨</button>

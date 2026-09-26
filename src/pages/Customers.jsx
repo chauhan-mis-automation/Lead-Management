@@ -76,16 +76,6 @@ export default function Customers() {
       : ''
 
     const body = `
-      <div class="print-brand">
-        <div>
-          <h1>Wavexa Lead Generation</h1>
-          <div class="print-brand-sub">Lead to Order · Track · Follow Up · Convert</div>
-        </div>
-        <div class="print-doc-title">
-          <div class="print-doc-name">Customer Profile</div>
-        </div>
-      </div>
-
       <div class="print-meta-grid">
         <div><span>Company</span><strong>${c.company_name || '—'}</strong></div>
         <div><span>Contact</span><strong>${c.contact_name || '—'}</strong></div>
@@ -110,7 +100,7 @@ export default function Customers() {
       ` : ''}
     `
 
-    printRecord(`Customer ${c.company_name || ''}`, body)
+    printRecord(`Customer ${c.company_name || ''}`, body, { docName: 'Customer Profile', docNumber: '' })
   }
 
   const allRows = customers.map((c) => {
@@ -201,7 +191,7 @@ export default function Customers() {
           <span>A customer is created automatically when a lead is marked "Won Order".</span>
         </div>
       ) : (
-        <div className="customers-table-wrap">
+        <div className="customers-table-wrap mobile-card-table">
           <table className="customers-table">
             <thead>
               <tr>
@@ -225,17 +215,17 @@ export default function Customers() {
                     <td className="expand-cell">
                       <span className={'expand-arrow' + (expandedId === c.id ? ' open' : '')}>›</span>
                     </td>
-                    <td className="customer-name-cell">{c.company_name || '—'}</td>
-                    <td>
+                    <td className="customer-name-cell" data-label="Company">{c.company_name || '—'}</td>
+                    <td data-label="Contact">
                       <div>{c.contact_name || '—'}</div>
                       {(c.mobile || c.email) && (
                         <div className="customer-contact-sub">{c.mobile || c.email}</div>
                       )}
                     </td>
-                    <td>{c.orderCount}</td>
-                    <td>₹{c.totalValue.toLocaleString('en-IN')}</td>
-                    <td className={c.pendingValue > 0 ? 'pending-due' : ''}>₹{c.pendingValue.toLocaleString('en-IN')}</td>
-                    <td>{c.lastOrderDate ? new Date(c.lastOrderDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
+                    <td data-label="Orders">{c.orderCount}</td>
+                    <td data-label="Total Value">₹{c.totalValue.toLocaleString('en-IN')}</td>
+                    <td className={c.pendingValue > 0 ? 'pending-due' : ''} data-label="Pending">₹{c.pendingValue.toLocaleString('en-IN')}</td>
+                    <td data-label="Last Order">{c.lastOrderDate ? new Date(c.lastOrderDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
                     <td onClick={(e) => e.stopPropagation()}>
                       <button className="icon-btn" title="Print customer" onClick={() => handlePrintCustomer(c)}>🖨</button>
                     </td>

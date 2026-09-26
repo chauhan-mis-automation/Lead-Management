@@ -7,6 +7,8 @@ import LeadDetail from './pages/LeadDetail'
 import CalendarPage from './pages/Calendar'
 import BulkUpload from './pages/BulkUpload'
 import Reports from './pages/Reports'
+import ReportsHub from './pages/ReportsHub'
+import LoginActivity from './pages/LoginActivity'
 import Orders from './pages/Orders'
 import Customers from './pages/Customers'
 import Quotations from './pages/Quotations'
@@ -60,6 +62,8 @@ function AppRoutes() {
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/users" element={<Users />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/reports-hub" element={<ReportsHub />} />
+        <Route path="/login-activity" element={<LoginActivity />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/customers" element={<Customers />} />
         <Route path="/quotations" element={<Quotations />} />

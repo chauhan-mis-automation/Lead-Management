@@ -37,7 +37,13 @@ export default function UserFormModal({ accessToken, onClose, onSaved }) {
       return
     }
 
-    setSaving(true)
+       setSaving(true)
+
+    // Get a guaranteed-fresh access token right before calling the function,
+    // instead of relying on the token passed in when the form first opened
+    // (which can go stale if the tab sat in the background for a while).
+    const { data: sessionData } = await supabase.auth.getSession()
+    const freshToken = sessionData?.session?.access_token || accessToken
 
     const functionsUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`
 
@@ -46,7 +52,7 @@ export default function UserFormModal({ accessToken, onClose, onSaved }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`
+          Authorization: `Bearer ${freshToken}`
         },
         body: JSON.stringify({
           email: form.email.trim(),

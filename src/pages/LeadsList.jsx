@@ -133,9 +133,9 @@ export default function LeadsList() {
             {isManager ? 'All leads' : 'Leads assigned to you'}
           </p>
         </div>
-        {(isManager || role === 'sales') && (
+        {(isManager || role === 'sales' || role === 'bde') && (
           <div className="leads-header-actions">
-            <button className="btn-ghost" onClick={() => navigate('/leads/bulk-upload')}>Bulk Upload</button>
+            {isManager && <button className="btn-ghost" onClick={() => navigate('/leads/bulk-upload')}>Bulk Upload</button>}
             <button className="btn-primary" onClick={() => setShowForm(true)}>+ New Lead</button>
           </div>
         )}

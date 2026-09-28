@@ -153,15 +153,18 @@ export default function BulkUpload() {
   const [error, setError] = useState('')
   const [products, setProducts] = useState([])
   const [users, setUsers] = useState([])
+  const [existingMobiles, setExistingMobiles] = useState(new Set())
 
   useEffect(() => {
     async function loadLookups() {
-      const [productsRes, usersRes] = await Promise.all([
+      const [productsRes, usersRes, leadsRes] = await Promise.all([
         supabase.from('products').select('id, product_name').eq('is_active', true),
-        supabase.from('profiles').select('id, full_name').in('role', ['sales', 'bde', 'calling'])
+        supabase.from('profiles').select('id, full_name').in('role', ['sales', 'bde', 'calling']),
+        supabase.from('leads').select('mobile').not('mobile', 'is', null)
       ])
       setProducts(productsRes.data || [])
       setUsers(usersRes.data || [])
+      setExistingMobiles(new Set((leadsRes.data || []).map((l) => String(l.mobile).trim())))
     }
     loadLookups()
   }, [])
@@ -195,11 +198,25 @@ export default function BulkUpload() {
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
         const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' })
 
+        // Track mobile numbers seen earlier in this same file, so two rows
+        // in one upload with the same number also get flagged as duplicates.
+        const seenInFile = new Set()
+
         const processed = rawRows.map((r, i) => {
           const norm = normalizeRow(r)
           const issues = []
           if (!norm.lead_name) issues.push('Missing lead name')
           if (!norm.mobile) issues.push('Missing mobile no.')
+
+          const mobileKey = String(norm.mobile || '').trim()
+          if (mobileKey) {
+            if (existingMobiles.has(mobileKey)) {
+              issues.push('Duplicate — mobile already exists in CRM')
+            } else if (seenInFile.has(mobileKey)) {
+              issues.push('Duplicate — repeated within this file')
+            }
+            seenInFile.add(mobileKey)
+          }
 
           const followupRawProvided = norm.next_followup_date !== undefined && norm.next_followup_date !== null && String(norm.next_followup_date).trim() !== ''
           const next_followup_date = parseDate(norm.next_followup_date)

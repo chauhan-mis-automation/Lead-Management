@@ -386,6 +386,15 @@
 
   .shell-mobile-account {
     display: flex;
+    /* Pin Logout to the bottom of the drawer: if the nav content above is
+       short, flexbox pushes it down (margin-top: auto); if it's tall enough
+       to scroll, position:sticky keeps it visible at the bottom edge
+       instead of requiring a full scroll to the very end. */
+    margin-top: auto;
+    position: sticky;
+    bottom: 0;
+    background: var(--surface-muted);
+    padding-bottom: 4px;
   }
 
   .shell {

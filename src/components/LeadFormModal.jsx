@@ -21,7 +21,10 @@ export default function LeadFormModal({ users, currentUserId, onClose, onSaved }
     status: 'new_lead',
     lead_temperature: '',
     priority: 'medium',
-    assigned_to: '',
+    // Managers (who see the "Assign To" dropdown, i.e. `users` is non-empty)
+    // default to unassigned so they consciously pick someone. Sales/BDE, who
+    // don't get the dropdown, self-assign automatically.
+    assigned_to: users.length === 0 ? (currentUserId || '') : '',
     budget: '',
     expected_deal_value: '',
     closing_tat: ''
@@ -52,6 +55,24 @@ export default function LeadFormModal({ users, currentUserId, onClose, onSaved }
       return
     }
     setError('')
+
+    // Duplicate check — warn if this mobile number is already in the CRM,
+    // but still let the user proceed if they confirm (e.g. genuinely two
+    // different leads sharing a number, like a shared office phone).
+    const { data: existing } = await supabase
+      .from('leads')
+      .select('id, lead_name, company, status')
+      .eq('mobile', form.mobile.trim())
+      .limit(1)
+      .maybeSingle()
+
+    if (existing) {
+      const proceed = window.confirm(
+        `A lead with this mobile number already exists: "${existing.lead_name}"${existing.company ? ` (${existing.company})` : ''}, status: ${existing.status}.\n\nAdd this as a new lead anyway?`
+      )
+      if (!proceed) return
+    }
+
     setSaving(true)
 
     const payload = {
@@ -244,12 +265,16 @@ export default function LeadFormModal({ users, currentUserId, onClose, onSaved }
 
             <div className="field">
               <label>Assign To (BDE/Sales)</label>
-              <select className="text-input" value={form.assigned_to} onChange={(e) => update('assigned_to', e.target.value)}>
-                <option value="">-- Unassigned --</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>{u.full_name} ({u.role})</option>
-                ))}
-              </select>
+              {users.length > 0 ? (
+                <select className="text-input" value={form.assigned_to} onChange={(e) => update('assigned_to', e.target.value)}>
+                  <option value="">-- Unassigned --</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>{u.full_name} ({u.role})</option>
+                  ))}
+                </select>
+              ) : (
+                <p className="static-value">Assigned to: You</p>
+              )}
             </div>
 
             <div className="field">

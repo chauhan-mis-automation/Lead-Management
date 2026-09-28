@@ -61,6 +61,14 @@ export default function AppShell() {
         </button>
         <div className="shell-topbar-title">{activeLabel}</div>
         <div className="shell-topbar-right">
+          <button
+            className="mobile-refresh-btn"
+            onClick={() => window.location.reload()}
+            aria-label="Refresh page"
+            title="Refresh page"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 12a8 8 0 1 1-2.34-5.66" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 4v6h-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </button>
           <NotificationBell />
           <div className="shell-topbar-avatar">
             {(profile?.full_name || session?.user?.email || '?').charAt(0).toUpperCase()}

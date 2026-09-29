@@ -11,13 +11,23 @@ export const STATUS_OPTIONS = [
   { value: 'not_interested', label: 'Not Interested', color: '#6B7280' }
 ]
 
+// Keep `value` in sync with the `lead_source` Postgres enum
+// (see supabase/migrations/25_expand_lead_source.sql). Never leave a blank
+// value here — LeadFormModal/EditLeadModal always default to 'manual_entry'
+// and every payload falls back to it too, so the DB enum never receives "".
 export const SOURCE_OPTIONS = [
-  { value: 'meta_ads', label: 'Meta Ads' },
+  { value: 'meta_ads', label: 'Meta / Facebook' },
+  { value: 'instagram', label: 'Instagram' },
   { value: 'google_ads', label: 'Google Ads' },
-  { value: 'website_form', label: 'Website Form' },
-  { value: 'manual_entry', label: 'Manual Entry' },
-  { value: 'bulk_upload', label: 'Bulk Upload' },
+  { value: 'website_form', label: 'Website' },
+  { value: 'website_chatbot', label: 'Website Chatbot' },
+  { value: 'google_sheets', label: 'Google Sheets' },
+  { value: 'bulk_upload', label: 'Excel / CSV' },
+  { value: 'manual_entry', label: 'Manual' },
   { value: 'indiamart', label: 'IndiaMART' },
+  { value: 'justdial', label: 'Justdial' },
+  { value: 'referral', label: 'Referral' },
+  { value: 'api', label: 'API' },
   { value: 'other', label: 'Other' }
 ]
 

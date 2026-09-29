@@ -214,7 +214,7 @@ export default function LoginActivity() {
   )
 }
 
-const TIMELINE_ICONS = { call: '📞', followup: '📅', lead: '➕', quotation: '📄' }
+const TIMELINE_ICONS = { call: '📞', followup: '📅', lead: '➕', lead_deleted: '🗑️', quotation: '📄' }
 
 function UserActivityDetailModal({ row, onClose }) {
   const [loading, setLoading] = useState(true)
@@ -228,7 +228,7 @@ function UserActivityDetailModal({ row, onClose }) {
       const dayEnd = new Date(dayStart)
       dayEnd.setDate(dayEnd.getDate() + 1)
 
-      const [callsRes, followsRes, leadsRes, quotesRes] = await Promise.all([
+      const [callsRes, followsRes, leadsRes, quotesRes, leadsDeletedRes] = await Promise.all([
         supabase
           .from('call_history')
           .select('id, remarks, call_date, lead:leads(lead_name)')
@@ -252,6 +252,16 @@ function UserActivityDetailModal({ row, onClose }) {
           .select('id, quotation_number, amount, created_at')
           .eq('created_by', row.user_id)
           .gte('created_at', dayStart.toISOString())
+          .lt('created_at', dayEnd.toISOString()),
+        // Deleted leads no longer exist in the `leads` table, so they can
+        // only be found here — lead_activity_log keeps a snapshot even
+        // after the lead row itself is gone.
+        supabase
+          .from('lead_activity_log')
+          .select('id, lead_name, company, created_at')
+          .eq('performed_by', row.user_id)
+          .eq('action', 'deleted')
+          .gte('created_at', dayStart.toISOString())
           .lt('created_at', dayEnd.toISOString())
       ])
 
@@ -271,8 +281,12 @@ function UserActivityDetailModal({ row, onClose }) {
         type: 'quotation', date: q.created_at,
         text: `Created quotation ${q.quotation_number} — ₹${Number(q.amount || 0).toLocaleString('en-IN')}`
       }))
+      const leadsDeleted = (leadsDeletedRes.data || []).map((l) => ({
+        type: 'lead_deleted', date: l.created_at,
+        text: `Deleted lead — ${l.lead_name || 'Unnamed lead'}${l.company ? ' (' + l.company + ')' : ''}`
+      }))
 
-      setTimeline([...calls, ...follows, ...leadsAdded, ...quotes].sort((a, b) => new Date(b.date) - new Date(a.date)))
+      setTimeline([...calls, ...follows, ...leadsAdded, ...quotes, ...leadsDeleted].sort((a, b) => new Date(b.date) - new Date(a.date)))
       setLoading(false)
     }
     load()

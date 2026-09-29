@@ -84,7 +84,10 @@ export default function LeadFormModal({ users, currentUserId, onClose, onSaved }
       industry_type: form.industry_type.trim() || null,
       city: form.city.trim() || null,
       state: form.state.trim() || null,
-      source: form.source,
+      // Never send an empty string — lead_source is a Postgres enum and
+      // rejects "" outright. Falls back to Manual if the field is ever
+      // somehow left blank.
+      source: form.source || 'manual_entry',
       product_id: form.product_id || null,
       requirement: form.requirement.trim() || null,
       status: form.status,

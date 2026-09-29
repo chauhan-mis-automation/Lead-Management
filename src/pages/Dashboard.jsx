@@ -115,7 +115,7 @@ export default function Dashboard() {
       .order('created_at', { ascending: false })
     if (!isManager && session?.user?.id) ordersQuery = ordersQuery.eq('created_by', session.user.id)
 
-    const [leadsRes, ordersRes, callsRes, followsRes, usersRes, productsRes, customersRes] = await Promise.all([
+    const [leadsRes, ordersRes, callsRes, followsRes, leadLogRes, usersRes, productsRes, customersRes] = await Promise.all([
       leadsQuery,
       ordersQuery,
       supabase
@@ -127,6 +127,11 @@ export default function Dashboard() {
         .from('followup_history')
         .select('id, remarks, followup_date, status, lead:leads(lead_name), created_by_profile:profiles(full_name)')
         .order('followup_date', { ascending: false })
+        .limit(6),
+      supabase
+        .from('lead_activity_log')
+        .select('id, lead_name, company, action, performed_by_name, created_at')
+        .order('created_at', { ascending: false })
         .limit(6),
       isManager
         ? supabase.from('profiles').select('id, full_name, role').in('role', ['sales', 'bde', 'calling']).order('full_name')
@@ -149,7 +154,11 @@ export default function Dashboard() {
       date: f.followup_date,
       text: `Follow-up updated for ${f.lead?.lead_name || 'a lead'}${f.created_by_profile?.full_name ? ' by ' + f.created_by_profile.full_name : ''}`
     }))
-    const merged = [...callItems, ...followItems].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8)
+    const leadLogItems = (leadLogRes.data || []).map((l) => ({
+      date: l.created_at,
+      text: `Lead ${l.action === 'created' ? 'added' : 'deleted'}: ${l.lead_name || 'Unnamed lead'}${l.company ? ' (' + l.company + ')' : ''}${l.performed_by_name ? ' by ' + l.performed_by_name : ''}`
+    }))
+    const merged = [...callItems, ...followItems, ...leadLogItems].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8)
     setActivity(merged)
 
     setLoading(false)

@@ -64,7 +64,11 @@ export default function EditLeadModal({ lead, onClose, onSaved }) {
         city: form.city.trim() || null,
         state: form.state.trim() || null,
         product_id: form.product_id || null,
-        source: form.source,
+        // Never send an empty string — lead_source is a Postgres enum and
+        // rejects "" outright. Falls back to Manual if the field is ever
+        // somehow left blank (e.g. an old lead saved before this column
+        // was populated).
+        source: form.source || 'manual_entry',
         requirement: form.requirement.trim() || null,
         lead_temperature: form.lead_temperature || null,
         priority: form.priority,

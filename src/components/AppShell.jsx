@@ -5,20 +5,21 @@ import logo from '../assets/logo.jpeg'
 import NotificationBell from './NotificationBell'
 import TopHeader from './TopHeader'
 import TodaysTasks from './TodaysTasks'
+import { LayoutDashboard, Users, CalendarDays, ShoppingBag, UserCheck, FileText, Package, UserCog, BarChart3, LayoutGrid, History, HelpCircle } from 'lucide-react'
 import './AppShell.css'
 
 const NAV_ITEMS = [
-  { to: '/dashboard', label: 'Dashboard', icon: '◧', roles: ['admin', 'subadmin', 'sales', 'bde', 'calling'] },
-  { to: '/leads', label: 'Leads', icon: '☰', roles: ['admin', 'subadmin', 'sales', 'bde', 'calling'] },
-  { to: '/calendar', label: 'Call Calendar', icon: '▦', roles: ['admin', 'subadmin', 'sales', 'bde', 'calling'] },
-  { to: '/orders', label: 'Orders', icon: '◈', roles: ['admin', 'subadmin', 'sales', 'bde', 'calling'] },
-  { to: '/customers', label: 'Customers', icon: '◎', roles: ['admin', 'subadmin', 'sales'] },
-  { to: '/quotations', label: 'Quotations', icon: '▤', roles: ['admin', 'subadmin', 'sales', 'bde'] },
-  { to: '/products', label: 'Products & Services', icon: '▧', roles: ['admin', 'subadmin', 'sales', 'bde', 'calling'] },
-  { to: '/users', label: 'Users', icon: '◐', roles: ['admin'] },
-  { to: '/reports', label: 'Reports', icon: '◓', roles: ['admin', 'subadmin'] },
-  { to: '/reports-hub', label: 'Reports Hub', icon: '⬒', roles: ['admin', 'subadmin'] },
-  { to: '/login-activity', label: 'Login Activity', icon: '◔', roles: ['admin', 'subadmin'] }
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'subadmin', 'sales', 'bde', 'calling'] },
+  { to: '/leads', label: 'Leads', icon: Users, roles: ['admin', 'subadmin', 'sales', 'bde', 'calling'] },
+  { to: '/calendar', label: 'Call Calendar', icon: CalendarDays, roles: ['admin', 'subadmin', 'sales', 'bde', 'calling'] },
+  { to: '/orders', label: 'Orders', icon: ShoppingBag, roles: ['admin', 'subadmin', 'sales', 'bde', 'calling'] },
+  { to: '/customers', label: 'Customers', icon: UserCheck, roles: ['admin', 'subadmin', 'sales'] },
+  { to: '/quotations', label: 'Quotations', icon: FileText, roles: ['admin', 'subadmin', 'sales', 'bde'] },
+  { to: '/products', label: 'Products & Services', icon: Package, roles: ['admin', 'subadmin', 'sales', 'bde', 'calling'] },
+  { to: '/users', label: 'Users', icon: UserCog, roles: ['admin'] },
+  { to: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin', 'subadmin'] },
+  { to: '/reports-hub', label: 'Reports Hub', icon: LayoutGrid, roles: ['admin', 'subadmin'] },
+  { to: '/login-activity', label: 'Login Activity', icon: History, roles: ['admin', 'subadmin'] }
 ]
 
 export default function AppShell() {
@@ -97,7 +98,7 @@ export default function AppShell() {
                 to={item.to}
                 className={({ isActive }) => 'shell-nav-item' + (isActive ? ' active' : '')}
               >
-                <span className="shell-nav-icon">{item.icon}</span>
+                <span className="shell-nav-icon"><item.icon size={18} strokeWidth={2} /></span>
                 {item.label}
               </NavLink>
             ))}

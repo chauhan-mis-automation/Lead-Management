@@ -1,84 +1,52 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area } from 'recharts'
+import { ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area } from 'recharts'
+import { Users, PhoneCall, AlertCircle, CalendarCheck, CheckCircle2, IndianRupee, TrendingUp, Package, UserPlus } from 'lucide-react'
 import { useAuth } from '../AuthContext'
 import { supabase } from '../supabaseClient'
-import { SOURCE_OPTIONS, statusMeta, orderStatusMeta, actionTypeMeta } from '../lib/constants'
+import { SOURCE_OPTIONS, STATUS_OPTIONS, statusMeta } from '../lib/constants'
 import LeadFormModal from '../components/LeadFormModal'
 import OrderFormModal from '../components/OrderFormModal'
 import StatDetailModal from '../components/StatDetailModal'
+import KpiCard from '../components/dashboard/KpiCard'
+import FunnelPyramid from '../components/dashboard/FunnelPyramid'
+import Hero from '../components/dashboard/Hero'
+import DonutCard from '../components/dashboard/DonutCard'
+import HealthPanel from '../components/dashboard/HealthPanel'
+import SourcePerformance from '../components/dashboard/SourcePerformance'
+import OrdersOverview from '../components/dashboard/OrdersOverview'
+import Leaderboard from '../components/dashboard/Leaderboard'
+import { FollowupLoad, OverdueAging } from '../components/dashboard/LoadCharts'
+import PipelineBoard from '../components/dashboard/PipelineBoard'
+import FollowupsTable from '../components/dashboard/FollowupsTable'
+import QuickActions from '../components/dashboard/QuickActions'
+import MiniCalendar from '../components/dashboard/MiniCalendar'
+import { TodayList, FeedPanel } from '../components/dashboard/ActivityFeed'
+import { Panel, Badge, Empty, AnimatedStat, MINT, SOURCE_COLORS, dateKey, localDateKey, statusTone } from '../components/dashboard/shared'
+// NOTE: legacy Dashboard.css is kept only because a few shared class names
+// (.status-badge, .panel-card ...) are reused by other pages. The redesigned
+// dashboard itself is styled by DashboardMint.css (all classes prefixed dx-).
 import './Dashboard.css'
-
-const SOURCE_COLORS = ['#5B8DEF', '#E5484D', '#0EA99A', '#9B7FE0', '#F5A623', '#6C7390', '#3AA0FF']
+import './DashboardMint.css'
 
 const PIPELINE_COLUMNS = [
-  { key: 'new', label: 'New Lead', color: '#5B8DEF', statuses: ['new_lead'] },
-  { key: 'contacted', label: 'Contacted', color: '#F5A623', statuses: ['contacted'] },
-  { key: 'followup', label: 'Follow Up', color: '#9B7FE0', statuses: ['followup_required', 'hot_lead', 'warm_lead'] },
-  { key: 'proposal', label: 'Proposal Sent', color: '#3AA0FF', statuses: ['proposal_sent', 'negotiation'] },
-  { key: 'won', label: 'Closed Won', color: '#2DBE7E', statuses: ['won_order'] }
+  { key: 'new', label: 'New Lead', color: MINT.sky, statuses: ['new_lead'] },
+  { key: 'contacted', label: 'Contacted', color: MINT.teal, statuses: ['contacted'] },
+  { key: 'followup', label: 'Follow Up', color: MINT.amber, statuses: ['followup_required', 'hot_lead', 'warm_lead'] },
+  { key: 'proposal', label: 'Proposal Sent', color: MINT.indigo, statuses: ['proposal_sent', 'negotiation'] },
+  { key: 'won', label: 'Won Order', color: MINT.emerald, statuses: ['won_order'] }
 ]
 
-const IconUsers = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M16 11a4 4 0 1 0-4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><path d="M2 21c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="1.8"/></svg>)
-const IconPhone = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 5c0 8.3 6.7 15 15 15l2-4-5-2-2 2c-2.5-1.2-4.8-3.5-6-6l2-2-2-5-4 2Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/></svg>)
-const IconWarn = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8"/><path d="M12 8v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg>)
-const IconCheck = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8"/><path d="M8 12.5l2.5 2.5L16 9.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>)
-const IconRupee = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M7 4h10M7 8h10M7 4c4 0 6 1.5 6 4s-2 4-6 4h9M7 12l8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>)
-const IconCalendar = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.8"/><path d="M3 9h18M8 3v4M16 3v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><path d="M8.5 14l2 2 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>)
+const OPEN = (l) => !['won_order', 'lost_order'].includes(l.status)
 
-function dateKey(d) { return d.toISOString().slice(0, 10) }
-
-// Buckets a timestamp by the viewer's LOCAL calendar day (not UTC), so a lead
-// created late at night IST still lands on the correct day in the trend chart.
-function localDateKey(value) {
-  const d = value instanceof Date ? value : new Date(value)
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-}
-
-function buildMonthGrid(year, month) {
-  const first = new Date(year, month, 1)
-  const start = new Date(year, month, 1 - first.getDay())
-  return Array.from({ length: 42 }, (_, i) => {
-    const d = new Date(start)
-    d.setDate(start.getDate() + i)
-    return d
-  })
-}
-
-// Smoothly animates a numeric stat from 0 up to its target value using an
-// eased requestAnimationFrame loop, so the KPI cards feel alive on load
-// instead of popping straight to a static number.
-function useCountUp(target, duration = 800) {
-  const [display, setDisplay] = useState(0)
-  useEffect(() => {
-    if (typeof target !== 'number' || Number.isNaN(target)) return
-    let raf
-    const startTime = performance.now()
-    function tick(now) {
-      const progress = Math.min((now - startTime) / duration, 1)
-      const eased = 1 - Math.pow(1 - progress, 3)
-      setDisplay(Math.round(target * eased))
-      if (progress < 1) raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [target, duration])
-  return display
-}
-
-function AnimatedStat({ value, format }) {
-  const isNumber = typeof value === 'number'
-  const animated = useCountUp(isNumber ? value : 0)
-  if (!isNumber) return <>{value}</>
-  return <>{format ? format(animated) : animated.toLocaleString('en-IN')}</>
-}
-
-function EmptyState({ icon, text }) {
+function DashSkeleton() {
   return (
-    <div className="dash-empty">
-      <span className="dash-empty-icon">{icon}</span>
-      <span className="dash-empty-text">{text}</span>
+    <div className="dx">
+      <div className="dx-kpis">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="dx-skel" style={{ height: 118 }} />)}</div>
+      <div className="dx-grid">
+        <div className="dx-stack"><div className="dx-skel" style={{ height: 240 }} /><div className="dx-skel" style={{ height: 300 }} /></div>
+        <div className="dx-stack"><div className="dx-skel" style={{ height: 200 }} /><div className="dx-skel" style={{ height: 300 }} /></div>
+      </div>
     </div>
   )
 }
@@ -166,106 +134,121 @@ export default function Dashboard() {
 
   useEffect(() => { loadDashboard() }, [loadDashboard])
 
-  if (loading) return <p className="dash-note">Loading dashboard…</p>
+  if (loading) return <DashSkeleton />
 
   const today = new Date()
   const todayKey = dateKey(today)
 
+  const openLeads = leads.filter(OPEN)
+  const pendingLeads = openLeads.filter((l) => l.next_followup_date)
+  const overdueLeads = pendingLeads.filter((l) => l.next_followup_date.slice(0, 10) < todayKey)
+  const dueTodayLeads = pendingLeads.filter((l) => l.next_followup_date.slice(0, 10) === todayKey)
+  const meetingLeads = pendingLeads.filter((l) => ['meeting', 'visit'].includes(l.next_action_type))
+  const wonLeads = leads.filter((l) => l.status === 'won_order')
   const total = leads.length
-  const pending = leads.filter((l) => l.next_followup_date && !['won_order', 'lost_order'].includes(l.status)).length
-  const overdue = leads.filter((l) => l.next_followup_date && l.next_followup_date.slice(0, 10) < todayKey && !['won_order', 'lost_order'].includes(l.status)).length
-  const won = leads.filter((l) => l.status === 'won_order').length
-  const meetingsScheduled = leads.filter(
-    (l) => ['meeting', 'visit'].includes(l.next_action_type) && l.next_followup_date && !['won_order', 'lost_order'].includes(l.status)
-  ).length
   const totalOrdersValue = orders.filter((o) => o.status !== 'cancelled').reduce((s, o) => s + (Number(o.order_value) || 0), 0)
 
-  const statCards = [
-    { label: 'Total Leads', value: total, icon: <IconUsers />, color: '#5B8DEF' },
-    { label: 'Follow-ups Pending', value: pending, icon: <IconPhone />, color: '#F5A623' },
-    { label: 'Overdue Follow-ups', value: overdue, icon: <IconWarn />, color: '#E5484D' },
-    { label: 'Meetings Scheduled', value: meetingsScheduled, icon: <IconCalendar />, color: '#9B7FE0' },
-    { label: 'Converted to Order', value: won, icon: <IconCheck />, color: '#2DBE7E' },
-    { label: 'Total Orders Value', value: totalOrdersValue, format: (n) => `₹${n.toLocaleString('en-IN')}`, icon: <IconRupee />, color: '#3AA0FF' }
+  const dayMs = 86400000
+  const daysAgo = (v) => Math.floor((new Date(todayKey) - new Date(String(v).slice(0, 10))) / dayMs)
+  const addedLast7 = leads.filter((l) => l.created_at && today - new Date(l.created_at) < 7 * dayMs).length
+  const convRate = total ? Math.round((wonLeads.length / total) * 100) : 0
+
+  // per-day series for sparklines / charts
+  const createdByDay = {}
+  leads.forEach((l) => { if (l.created_at) { const k = localDateKey(l.created_at); createdByDay[k] = (createdByDay[k] || 0) + 1 } })
+  const orderValueByDay = {}
+  orders.filter((o) => o.status !== 'cancelled').forEach((o) => { if (o.created_at) { const k = localDateKey(o.created_at); orderValueByDay[k] = (orderValueByDay[k] || 0) + (Number(o.order_value) || 0) } })
+  const lastDays = (n) => Array.from({ length: n }, (_, i) => { const d = new Date(today); d.setDate(d.getDate() - (n - 1 - i)); return d })
+  const next14 = Array.from({ length: 14 }, (_, i) => { const d = new Date(today); d.setDate(d.getDate() + i); return d })
+  const dueByDay = {}
+  pendingLeads.forEach((l) => { const k = l.next_followup_date.slice(0, 10); dueByDay[k] = (dueByDay[k] || 0) + 1 })
+
+  const spark30 = lastDays(30).map((d) => createdByDay[localDateKey(d)] || 0)
+  const sparkOrders = lastDays(30).map((d) => orderValueByDay[localDateKey(d)] || 0)
+  const sparkDue = next14.map((d) => dueByDay[dateKey(d)] || 0)
+
+  const agingBuckets = [
+    { label: '1-3 days', count: 0 }, { label: '4-7 days', count: 0 }, { label: '8-14 days', count: 0 }, { label: '15+ days', count: 0 }
+  ]
+  overdueLeads.forEach((l) => {
+    const age = daysAgo(l.next_followup_date)
+    agingBuckets[age <= 3 ? 0 : age <= 7 ? 1 : age <= 14 ? 2 : 3].count++
+  })
+
+  const loadData = [
+    { label: 'Late', count: overdueLeads.length, overdue: true },
+    ...next14.map((d, i) => ({ label: d.toLocaleDateString('en-IN', { day: 'numeric' }), count: dueByDay[dateKey(d)] || 0, today: i === 0 }))
   ]
 
-  // Funnel stages collapsed into 5 clean tapering stages (most CRMs group
-  // "Contacted/Follow-up/Hot/Warm" together) so the funnel actually tapers
-  // visually instead of showing 10 thin slivers.
-  const FUNNEL_STAGES = [
-    { key: 'new', label: 'New Lead', color: '#5B8DEF', statuses: ['new_lead'] },
-    { key: 'contacted', label: 'Contacted', color: '#3AA0FF', statuses: ['contacted', 'followup_required', 'hot_lead', 'warm_lead'] },
-    { key: 'proposal', label: 'Proposal / Negotiation', color: '#9B7FE0', statuses: ['proposal_sent', 'negotiation'] },
-    { key: 'won', label: 'Won Order', color: '#2DD9C4', statuses: ['won_order'] }
+  const kpis = [
+    { label: 'Total Leads', value: total, icon: Users, tone: MINT.emerald, pill: `+${addedLast7} this wk`, visual: { type: 'spark', data: spark30 } },
+    { label: 'Follow-ups Pending', value: pendingLeads.length, icon: PhoneCall, tone: MINT.amber, pill: `${dueTodayLeads.length} due today`, visual: { type: 'spark', data: sparkDue } },
+    { label: 'Overdue Follow-ups', value: overdueLeads.length, icon: AlertCircle, tone: MINT.rose, pill: overdueLeads.length ? 'Needs action' : 'All clear', visual: { type: 'spark', data: agingBuckets.map((b) => b.count) } },
+    { label: 'Meetings Scheduled', value: meetingLeads.length, icon: CalendarCheck, tone: MINT.indigo, pill: 'Upcoming', visual: { type: 'ring', pct: pendingLeads.length ? meetingLeads.length / pendingLeads.length : 0 } },
+    { label: 'Converted to Order', value: wonLeads.length, icon: CheckCircle2, tone: MINT.emerald, pill: `${convRate}% win rate`, visual: { type: 'ring', pct: total ? wonLeads.length / total : 0 } },
+    { label: 'Total Orders Value', value: totalOrdersValue, format: (n) => `₹${n.toLocaleString('en-IN')}`, icon: IndianRupee, tone: MINT.sky, pill: `${orders.length} orders`, visual: { type: 'spark', data: sparkOrders } }
   ]
-  const funnelData = FUNNEL_STAGES
-    .map((s) => ({ name: s.label, value: leads.filter((l) => s.statuses.includes(l.status)).length, fill: s.color }))
-    .filter((s) => s.value > 0)
 
-  const cityWise = Object.entries(
-    leads.reduce((acc, l) => {
-      const city = l.city?.trim() || 'Not Specified'
-      acc[city] = (acc[city] || 0) + 1
-      return acc
-    }, {})
-  )
-    .map(([name, value]) => ({ name, value }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 7)
+  // Cumulative funnel: a lead in "Proposal" also passed New/Contacted/Follow-up
+  const stageIndex = {}
+  PIPELINE_COLUMNS.forEach((c, i) => c.statuses.forEach((st) => { stageIndex[st] = i }))
+  const funnelLeads = leads.filter((l) => stageIndex[l.status] !== undefined)
+  const funnelStages = PIPELINE_COLUMNS.map((c, i) => ({
+    key: c.key, label: c.label, color: c.color,
+    reached: funnelLeads.filter((l) => stageIndex[l.status] >= i).length,
+    current: funnelLeads.filter((l) => stageIndex[l.status] === i).length
+  }))
+  const lostCount = leads.filter((l) => ['lost_order', 'not_interested'].includes(l.status)).length
 
   const recentLeads = [...leads].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 6)
 
   const sourceData = SOURCE_OPTIONS
     .map((s) => ({ name: s.label, value: leads.filter((l) => l.source === s.value).length }))
-    .filter((s) => s.value > 0)
-    .sort((a, b) => b.value - a.value)
+    .filter((s) => s.value > 0).sort((a, b) => b.value - a.value)
+    .map((s, i) => ({ ...s, color: SOURCE_COLORS[i % SOURCE_COLORS.length] }))
 
-  const dueTodayLeads = leads.filter((l) => l.next_followup_date?.slice(0, 10) === todayKey && !['won_order', 'lost_order'].includes(l.status))
+  const sourcePerf = sourceData.map((d) => {
+    const val = SOURCE_OPTIONS.find((o) => o.label === d.name)?.value
+    return { name: d.name, color: d.color, leads: d.value, won: leads.filter((l) => l.source === val && l.status === 'won_order').length }
+  })
 
-  const upcoming = leads
-    .filter((l) => l.next_followup_date && !['won_order', 'lost_order'].includes(l.status))
-    .sort((a, b) => new Date(a.next_followup_date) - new Date(b.next_followup_date))
-    .slice(0, 8)
+  const statusData = STATUS_OPTIONS
+    .map((st) => ({ name: st.label, value: leads.filter((l) => l.status === st.value).length, color: statusTone(st.value) }))
+    .filter((s) => s.value > 0).sort((a, b) => b.value - a.value)
 
-  const monthDays = buildMonthGrid(today.getFullYear(), today.getMonth())
+  const assignedCount = leads.filter((l) => l.assigned_to).length
+  const healthItems = [
+    { label: 'Win Rate', pct: total ? wonLeads.length / total : 0, color: MINT.emerald, sub: `${wonLeads.length} of ${total} leads` },
+    { label: 'On-time Follow-ups', pct: pendingLeads.length ? 1 - overdueLeads.length / pendingLeads.length : 1, color: overdueLeads.length > pendingLeads.length / 2 ? MINT.rose : MINT.amber, sub: `${overdueLeads.length} overdue` },
+    { label: 'Proposal Reach', pct: total ? funnelStages[3].reached / total : 0, color: MINT.indigo, sub: `${funnelStages[3].reached} reached proposal` },
+    { label: 'Assigned Leads', pct: total ? assignedCount / total : 0, color: MINT.sky, sub: `${assignedCount} assigned` }
+  ]
+
+  const leaderboard = isManager
+    ? [...users.map((u) => ({ id: u.id, name: u.full_name || 'User' })), { id: 'none', name: 'Unassigned' }]
+        .map((u) => {
+          const mine = leads.filter((l) => (u.id === 'none' ? !l.assigned_to : l.assigned_to === u.id))
+          return { ...u, total: mine.length, won: mine.filter((l) => l.status === 'won_order').length }
+        })
+        .filter((u) => u.total > 0).sort((a, b) => b.total - a.total)
+    : []
+
   const leadsByDay = {}
-  leads.filter((l) => l.next_followup_date && !['won_order', 'lost_order'].includes(l.status)).forEach((l) => {
+  pendingLeads.forEach((l) => {
     const key = l.next_followup_date.slice(0, 10)
     if (!leadsByDay[key]) leadsByDay[key] = []
     leadsByDay[key].push(l)
   })
 
-  const trendDays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(today)
-    d.setDate(d.getDate() - (6 - i))
-    return d
-  })
-  const trendData = trendDays.map((d) => {
-    const key = localDateKey(d)
-    const count = leads.filter((l) => l.created_at && localDateKey(l.created_at) === key).length
-    return { day: d.toLocaleDateString('en-IN', { weekday: 'short' }), count }
-  })
-  const trendTotal = trendData.reduce((s, t) => s + t.count, 0)
-
-  const recentOrders = orders.slice(0, 6)
+  const trendData = lastDays(30).map((d) => ({ day: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }), count: createdByDay[localDateKey(d)] || 0 }))
+  const trendTotal = trendData.reduce((x, t) => x + t.count, 0)
 
   const topProducts = products
     .map((p) => ({ name: p.product_name, leads: leads.filter((l) => l.product_id === p.id).length }))
-    .filter((p) => p.leads > 0)
-    .sort((a, b) => b.leads - a.leads)
-    .slice(0, 5)
+    .filter((p) => p.leads > 0).sort((a, b) => b.leads - a.leads).slice(0, 5)
 
-  const wonLeads = leads.filter((l) => l.status === 'won_order')
-  const pendingLeads = leads.filter((l) => l.next_followup_date && !['won_order', 'lost_order'].includes(l.status))
-  const overdueLeads = leads.filter((l) => l.next_followup_date && l.next_followup_date.slice(0, 10) < todayKey && !['won_order', 'lost_order'].includes(l.status))
-  const meetingLeads = leads.filter(
-    (l) => ['meeting', 'visit'].includes(l.next_action_type) && l.next_followup_date && !['won_order', 'lost_order'].includes(l.status)
-  )
-
-  const weekEnd = new Date(today)
-  weekEnd.setDate(weekEnd.getDate() + 7)
+  const weekEnd = new Date(today); weekEnd.setDate(weekEnd.getDate() + 7)
   const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0)
-
   const followupRows = pendingLeads
     .filter((l) => {
       const d = new Date(l.next_followup_date)
@@ -293,552 +276,146 @@ export default function Dashboard() {
   }
 
   function openStatModal(label) {
-    if (label === 'Total Leads') setStatModal({ title: 'Total Leads', kind: 'leads', items: leads })
-    if (label === 'Follow-ups Pending') setStatModal({ title: 'Follow-ups Pending', kind: 'leads', items: pendingLeads })
-    if (label === 'Overdue Follow-ups') setStatModal({ title: 'Overdue Follow-ups', kind: 'leads', items: overdueLeads })
-    if (label === 'Meetings Scheduled') setStatModal({ title: 'Meetings & Site Visits', kind: 'leads', items: meetingLeads })
-    if (label === 'Converted to Order') setStatModal({ title: 'Converted to Order', kind: 'leads', items: wonLeads })
-    if (label === 'Total Orders Value') setStatModal({ title: 'All Orders', kind: 'orders', items: orders })
+    const map = {
+      'Total Leads': { title: 'Total Leads', kind: 'leads', items: leads },
+      'Follow-ups Pending': { title: 'Follow-ups Pending', kind: 'leads', items: pendingLeads },
+      'Overdue Follow-ups': { title: 'Overdue Follow-ups', kind: 'leads', items: overdueLeads },
+      'Meetings Scheduled': { title: 'Meetings & Site Visits', kind: 'leads', items: meetingLeads },
+      'Converted to Order': { title: 'Converted to Order', kind: 'leads', items: wonLeads },
+      'Total Orders Value': { title: 'All Orders', kind: 'orders', items: orders }
+    }
+    if (map[label]) setStatModal(map[label])
   }
 
-  return (
-    <div>
-      <div className="dash-top">
-        <div>
-          <h1>Dashboard</h1>
-          <p className="dash-note">{isManager ? "Here's your team's lead & sales overview." : "Here's your lead overview."}</p>
-        </div>
-      </div>
+  const openLead = (id) => navigate(`/leads/${id}`)
+  const hour = today.getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  const firstName = (profile?.full_name || '').split(' ')[0]
 
-      <div className="stat-grid">
-        {statCards.map((c) => (
-          <button className="stat-card" key={c.label} style={{ '--icon-color': c.color }} onClick={() => openStatModal(c.label)}>
-            <div className="stat-icon">{c.icon}</div>
-            <div className="stat-card-body">
-              <div className="stat-value"><AnimatedStat value={c.value} format={c.format} /></div>
-              <div className="stat-label">{c.label}</div>
-            </div>
-          </button>
+  return (
+    <div className="dx">
+      <Hero
+        greeting={greeting} name={firstName} canCreate={canCreate} onAdd={() => setShowLeadForm(true)}
+        note={overdueLeads.length ? `${overdueLeads.length} follow-ups are overdue — let's clear them today.` : "You're all caught up. Time to find new leads!"}
+        chips={[
+          { label: 'Due today', value: dueTodayLeads.length },
+          { label: 'Overdue', value: overdueLeads.length },
+          { label: 'New this week', value: addedLast7 },
+          { label: 'Orders value', value: totalOrdersValue, format: (n) => `₹${n.toLocaleString('en-IN')}` }
+        ]}
+      />
+
+      <div className="dx-kpis">
+        {kpis.map((k, i) => (
+          <KpiCard key={k.label} {...k} delay={i + 1} onClick={() => openStatModal(k.label)} />
         ))}
       </div>
 
-      <div className="panel-card trend-panel">
-        <div className="panel-head">
-          <h3>Leads Added — Last 7 Days</h3>
-          <span className="trend-total-chip">{trendTotal} this week</span>
-        </div>
-        {trendTotal === 0 ? (
-          <EmptyState icon="📈" text="No leads added in the last 7 days yet." />
-        ) : (
-          <ResponsiveContainer width="100%" height={160}>
-            <AreaChart data={trendData} margin={{ left: 0, right: 10, top: 6, bottom: 0 }}>
-              <defs>
-                <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#5B8DEF" stopOpacity={0.35} />
-                  <stop offset="100%" stopColor="#5B8DEF" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
-              <XAxis dataKey="day" tick={{ fontSize: 11 }} stroke="var(--text-secondary)" axisLine={false} tickLine={false} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} stroke="var(--text-secondary)" axisLine={false} tickLine={false} width={28} />
-              <Tooltip />
-              <Area type="monotone" dataKey="count" name="Leads" stroke="#5B8DEF" strokeWidth={2.5} fill="url(#trendFill)" animationDuration={900} />
-            </AreaChart>
-          </ResponsiveContainer>
-        )}
-      </div>
-
-      <div className="panel-card followups-panel">
-        <div className="panel-head">
-          <h3>My Follow-ups</h3>
-          <select className="text-input followups-filter" value={followupFilter} onChange={(e) => setFollowupFilter(e.target.value)}>
-            <option value="all">All Upcoming</option>
-            <option value="today">Due Today</option>
-            <option value="overdue">Overdue</option>
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-          </select>
-        </div>
-        {followupRows.length === 0 ? (
-          <EmptyState icon="✅" text="No follow-ups in this range. You're all caught up!" />
-        ) : (
-          <div className="upcoming-table-wrap">
-            <table className="upcoming-table followups-table">
-              <thead>
-                <tr><th></th><th>Lead / Company</th><th>Type</th><th>Date & Time</th><th>Status</th></tr>
-              </thead>
-              <tbody>
-                {followupRows.map((l) => {
-                  const rowKey = dateKey(new Date(l.next_followup_date))
-                  const isOverdue = rowKey < todayKey
-                  const isToday = rowKey === todayKey
-                  const meta = statusMeta(l.status)
-                  const aMeta = actionTypeMeta(l.next_action_type)
-                  return (
-                    <tr
-                      key={l.id}
-                      className={'clickable-row' + (isOverdue ? ' row-overdue' : '') + (isToday ? ' row-today' : '')}
-                      onClick={() => navigate(`/leads/${l.id}`)}
-                    >
-                      <td onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          className="followup-check"
-                          disabled={markingDoneId === l.id}
-                          onChange={(e) => handleMarkFollowupDone(l, e)}
-                          title="Mark as done"
-                        />
-                      </td>
-                      <td>
-                        <div className="upcoming-name">{l.lead_name}</div>
-                        {l.company && <div className="upcoming-company">{l.company}</div>}
-                      </td>
-                      <td><span className="action-type-chip-mini">{aMeta.icon} {aMeta.label}</span></td>
-                      <td>
-                        {isToday && <span className="today-blink-dot" />}
-                        {new Date(l.next_followup_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                        {isOverdue && <span className="overdue-tag">Overdue</span>}
-                      </td>
-                      <td><span className="status-badge" style={{ '--badge-color': meta.color }}>{meta.label}</span></td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+      <div className="dx-grid">
+        <div className="dx-stack">
+          <FunnelPyramid stages={funnelStages} lost={lostCount} />
+          <div className="dx-grid-even">
+            <DonutCard title="Leads by Source" subtitle="Where your leads come from" data={sourceData} total={total} centerLabel="Leads" />
+            <DonutCard title="Lead Status Mix" subtitle="Current status of every lead" data={statusData} total={total} centerLabel="Leads" />
           </div>
-        )}
-      </div>
-
-      <div className="panel-card pipeline-panel">
-          <div className="panel-head">
-            <h3>Lead Pipeline</h3>
-            <button className="link-btn" onClick={() => navigate('/leads')}>View All</button>
+          <PipelineBoard columns={PIPELINE_COLUMNS} leads={leads} onOpenLead={openLead} onViewAll={() => navigate('/leads')} />
+          <div className="dx-grid-even">
+            <FollowupLoad data={loadData} />
+            <OverdueAging data={agingBuckets} />
           </div>
-          <div className="pipeline-board">
-            {PIPELINE_COLUMNS.map((col) => {
-              const colLeads = leads.filter((l) => col.statuses.includes(l.status))
-              const visible = colLeads.slice(0, 4)
-              const extra = colLeads.length - visible.length
-              return (
-                <div className="pipeline-column" key={col.key}>
-                  <div className="pipeline-col-header" style={{ '--col-color': col.color }}>
-                    <span>{col.label}</span>
-                    <span className="pipeline-col-count">{colLeads.length}</span>
-                  </div>
-                  <div className="pipeline-col-body">
-                    {visible.map((l) => (
-                      <button key={l.id} className="pipeline-card" onClick={() => navigate(`/leads/${l.id}`)}>
-                        <span className="pipeline-card-dot" style={{ background: col.color }} />
-                        <div>
-                          <div className="pipeline-card-name">{l.lead_name}</div>
-                          <div className="pipeline-card-sub">{l.company || '—'}</div>
-                          <div className="pipeline-card-date">
-                            {new Date(l.next_followup_date || l.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                    {extra > 0 && <div className="pipeline-more">+ {extra} more</div>}
-                    {colLeads.length === 0 && (
-                      <div className="pipeline-empty">
-                        <span className="pipeline-empty-icon">○</span>
-                        <span>No leads</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-      <div className="dash-row-2col dash-row-2col-even">
-          <div className="panel-card">
-            <div className="panel-head">
-              <h3>Call Calendar</h3>
-              <button className="link-btn" onClick={() => navigate('/calendar')}>View All</button>
-            </div>
-            <div className="mini-cal-weekdays">
-              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => <span key={i}>{d}</span>)}
-            </div>
-            <div className="mini-cal-grid">
-              {monthDays.map((d) => {
-                const key = dateKey(d)
-                const inMonth = d.getMonth() === today.getMonth()
-                const isToday = key === todayKey
-                const dayLeads = leadsByDay[key] || []
-                return (
-                  <div
-                    key={key}
-                    className={'mini-cal-cell' + (inMonth ? '' : ' outside') + (isToday ? ' today' : '') + (dayLeads.length ? ' has-events' : '')}
-                  >
-                    {d.getDate()}
-                    {dayLeads.length > 0 && <span className="mini-cal-dot" />}
-                    {dayLeads.length > 0 && (
-                      <div className="mini-cal-tooltip">
-                        <div className="mini-cal-tooltip-date">
-                          {d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
-                        </div>
-                        {dayLeads.slice(0, 4).map((l) => (
-                          <div key={l.id} className="mini-cal-tooltip-row">
-                            <span className="mini-cal-tooltip-time">
-                              {new Date(l.next_followup_date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                            <span className="mini-cal-tooltip-name">
-                              {actionTypeMeta(l.next_action_type).icon} {l.lead_name}{l.company ? ` · ${l.company}` : ''}
-                            </span>
-                          </div>
-                        ))}
-                        {dayLeads.length > 4 && <div className="mini-cal-tooltip-more">+{dayLeads.length - 4} more</div>}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="panel-card">
-            <div className="panel-head">
-              <h3>Today's Activities ({dueTodayLeads.length})</h3>
-            </div>
-            {dueTodayLeads.length === 0 ? (
-              <EmptyState icon="☀️" text="Nothing scheduled for today." />
-            ) : (
-              <ul className="today-calls-list">
-                {dueTodayLeads.slice(0, 5).map((l) => {
-                  const aMeta = actionTypeMeta(l.next_action_type)
-                  return (
-                    <li key={l.id} className="today-call-item">
-                      <div>
-                        <div className="today-call-name">{aMeta.icon} {l.company || l.lead_name}</div>
-                        <div className="today-call-time">
-                          {new Date(l.next_followup_date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      </div>
-                      {aMeta.value === 'call' && l.mobile ? (
-                        <a href={`tel:${l.mobile}`} className="call-btn">📞 Call</a>
-                      ) : (
-                        <button className="call-btn" onClick={() => navigate(`/leads/${l.id}`)}>{aMeta.label}</button>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-          </div>
-        </div>
-
-      <div className="dash-row-2col">
-        <div className="panel-card">
-          <div className="panel-head">
-            <h3>Upcoming Follow-ups</h3>
-            <button className="link-btn" onClick={() => navigate('/leads')}>View All</button>
-          </div>
-          {upcoming.length === 0 ? (
-            <EmptyState icon="🗓️" text="No upcoming follow-ups." />
-          ) : (
-            <div className="upcoming-table-wrap">
-              <table className="upcoming-table">
-                <thead>
-                  <tr><th>Date & Time</th><th>Lead / Company</th><th>Status</th><th></th></tr>
-                </thead>
-                <tbody>
-                  {upcoming.map((l) => {
-                    const meta = statusMeta(l.status)
-                    return (
-                      <tr key={l.id} className="clickable-row" onClick={() => navigate(`/leads/${l.id}`)}>
-                        <td>{new Date(l.next_followup_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
-                        <td>
-                          <div className="upcoming-name">
-                            <span className="action-emoji">{actionTypeMeta(l.next_action_type).icon}</span> {l.lead_name}
-                          </div>
-                          {l.company && <div className="upcoming-company">{l.company}</div>}
-                        </td>
-                        <td><span className="status-badge" style={{ '--badge-color': meta.color }}>{meta.label}</span></td>
-                        <td className="upcoming-arrow">›</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        <div className="panel-card">
-          <div className="panel-head"><h3>Quick Actions</h3></div>
-          <div className="quick-actions-grid">
-            {canCreate && (
-              <button className="quick-action" onClick={() => setShowLeadForm(true)}>
-                <span className="quick-action-icon">＋</span>Add Lead
-              </button>
-            )}
-            {canCreate && (
-              <button className="quick-action" onClick={() => setShowOrderForm(true)}>
-                <span className="quick-action-icon">◈</span>Create Order
-              </button>
-            )}
-            {canCreate && (
-              <button className="quick-action" onClick={() => navigate('/leads/bulk-upload')}>
-                <span className="quick-action-icon">⇪</span>Bulk Upload
-              </button>
-            )}
-            <button className="quick-action" onClick={() => navigate('/calendar')}>
-              <span className="quick-action-icon">▦</span>View Calendar
-            </button>
-            <button className="quick-action" onClick={() => navigate('/orders')}>
-              <span className="quick-action-icon">◒</span>View Orders
-            </button>
-            {isManager && (
-              <button className="quick-action" onClick={() => navigate('/reports')}>
-                <span className="quick-action-icon">◓</span>View Reports
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="dash-row-2col">
-        <div className="panel-card">
-          <div className="panel-head"><h3>Leads by Source</h3></div>
-          {sourceData.length === 0 ? (
-            <EmptyState icon="📊" text="No leads yet." />
-          ) : (
-            <div className="donut-wrap">
-              <div className="donut-chart">
-                <ResponsiveContainer width="100%" height={170}>
-                  <PieChart>
-                    <Pie
-                      data={sourceData}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={48}
-                      outerRadius={76}
-                      paddingAngle={3}
-                      cornerRadius={6}
-                      animationDuration={800}
-                      animationEasing="ease-out"
-                    >
-                      {sourceData.map((_, i) => <Cell key={i} fill={SOURCE_COLORS[i % SOURCE_COLORS.length]} stroke="var(--surface)" strokeWidth={2} />)}
-                    </Pie>
+          <FollowupsTable
+            rows={followupRows} filter={followupFilter} onFilter={setFollowupFilter} todayKey={todayKey}
+            markingId={markingDoneId} onMarkDone={handleMarkFollowupDone} onOpenLead={openLead}
+          />
+            <Panel title="Leads Added — Last 30 Days" subtitle={`${trendTotal} new leads`}>
+              {trendTotal === 0 ? <Empty icon={TrendingUp} text="No leads added in the last 30 days." /> : (
+                <ResponsiveContainer width="100%" height={190}>
+                  <AreaChart data={trendData} margin={{ left: 0, right: 10, top: 8, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="dxTrend" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10B981" stopOpacity={0.35} />
+                        <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+                    <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} interval={4} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} width={28} />
                     <Tooltip />
-                  </PieChart>
+                    <Area type="monotone" dataKey="count" name="Leads" stroke="#059669" strokeWidth={2.5} fill="url(#dxTrend)" animationDuration={1000} />
+                  </AreaChart>
                 </ResponsiveContainer>
-                <div className="donut-center">
-                  <span className="donut-total"><AnimatedStat value={total} /></span>
-                  <span className="donut-total-label">Total Leads</span>
-                </div>
-              </div>
-              <ul className="donut-legend">
-                {sourceData.map((s, i) => (
-                  <li key={s.name}>
-                    <span className="legend-dot" style={{ background: SOURCE_COLORS[i % SOURCE_COLORS.length] }} />
-                    <span className="legend-name">{s.name}</span>
-                    <span className="legend-value">{s.value} ({Math.round((s.value / total) * 100)}%)</span>
+              )}
+            </Panel>
+          <SourcePerformance rows={sourcePerf} />
+          <OrdersOverview orders={orders} onViewAll={() => navigate('/orders')} />
+        </div>
+
+        <aside className="dx-stack">
+          <QuickActions
+            canCreate={canCreate} isManager={isManager}
+            handlers={{
+              addLead: () => setShowLeadForm(true), addOrder: () => setShowOrderForm(true),
+              bulk: () => navigate('/leads/bulk-upload'), calendar: () => navigate('/calendar'),
+              orders: () => navigate('/orders'), reports: () => navigate('/reports')
+            }}
+          />
+          <HealthPanel items={healthItems} />
+          <MiniCalendar today={today} leadsByDay={leadsByDay} onViewAll={() => navigate('/calendar')} />
+          <TodayList leads={dueTodayLeads} onOpenLead={openLead} />
+          {isManager && <Leaderboard rows={leaderboard} />}
+          <FeedPanel activity={activity} orders={orders.slice(0, 6)} onViewOrders={() => navigate('/orders')} />
+          <Panel title="Recent Leads" action={<button className="dx-link" onClick={() => navigate('/leads')}>View all</button>}>
+            {recentLeads.length === 0 ? <Empty icon={UserPlus} text="No leads yet." /> : (
+              <ul className="dx-orders">
+                {recentLeads.map((l) => (
+                  <li key={l.id} className="dx-clickable" onClick={() => openLead(l.id)}>
+                    <div>
+                      <div className="dx-cell-name">{l.lead_name}</div>
+                      <div className="dx-cell-sub">{l.company || '—'}</div>
+                    </div>
+                    <b>{new Date(l.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</b>
+                    <Badge color={statusTone(l.status)}>{statusMeta(l.status).label}</Badge>
                   </li>
                 ))}
               </ul>
+            )}
+          </Panel>
+          <Panel title="Top Products by Leads" action={<button className="dx-link" onClick={() => navigate('/products')}>View all</button>}>
+            {topProducts.length === 0 ? <Empty icon={Package} text="No product-linked leads yet." /> : (
+              <ResponsiveContainer width="100%" height={190}>
+                <BarChart data={topProducts} layout="vertical" margin={{ left: 6, right: 16 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" horizontal={false} />
+                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
+                  <Tooltip cursor={{ fill: '#F1F5F9' }} />
+                  <Bar dataKey="leads" name="Leads" fill="#10B981" radius={[0, 8, 8, 0]} barSize={16} animationDuration={900} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </Panel>
+
+          <Panel title="Business Snapshot">
+            <div className="dx-snap">
+              {[['Active Products', products.length, '/products'], ['Customers', customerCount, '/customers'], ['Total Orders', orders.length, '/orders']].map(([label, v, to]) => (
+                <button key={label} className="dx-snap-tile" onClick={() => navigate(to)}>
+                  <b><AnimatedStat value={v} /></b><span>{label}</span>
+                </button>
+              ))}
             </div>
-          )}
-        </div>
-
-        <div className="panel-card">
-          <div className="panel-head">
-            <h3>Recent Orders</h3>
-            <button className="link-btn" onClick={() => navigate('/orders')}>View All</button>
-          </div>
-          {recentOrders.length === 0 ? (
-            <EmptyState icon="🧾" text="No orders yet." />
-          ) : (
-            <div className="recent-orders-list">
-              {recentOrders.map((o) => {
-                const meta = orderStatusMeta(o.status)
-                return (
-                  <div key={o.id} className="recent-order-item">
-                    <div>
-                      <div className="recent-order-number">{o.order_number}</div>
-                      <div className="recent-order-company">{o.company || o.lead?.lead_name || '—'}</div>
-                    </div>
-                    <div className="recent-order-value">{o.order_value ? `₹${Number(o.order_value).toLocaleString('en-IN')}` : '—'}</div>
-                    <span className="status-badge" style={{ '--badge-color': meta.color }}>{meta.label}</span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="panel-card">
-        <div className="panel-head"><h3>Sales Funnel</h3></div>
-        {funnelData.length === 0 ? (
-          <EmptyState icon="🔻" text="No leads in the pipeline yet." />
-        ) : (
-          <div className="funnel-stack">
-            {funnelData.map((f, i) => {
-              const maxValue = funnelData[0].value
-              const widthPct = maxValue ? Math.max(30, Math.round((f.value / maxValue) * 100)) : 100
-              const pctOfTotal = total ? Math.round((f.value / total) * 100) : 0
-              return (
-                <div className="funnel-row" key={f.name}>
-                  <div className="funnel-track">
-                    <div
-                      className="funnel-bar"
-                      style={{ width: `${widthPct}%`, background: f.fill, animationDelay: `${i * 0.08}s` }}
-                    >
-                      <span className="funnel-bar-value">{f.value}</span>
-                    </div>
-                  </div>
-                  <div className="funnel-row-meta">
-                    <span className="funnel-row-label">{f.name}</span>
-                    <span className="funnel-row-pct">{pctOfTotal}%</span>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      <div className="dash-row-2col">
-        <div className="panel-card">
-          <div className="panel-head">
-            <h3>Recent Leads</h3>
-            <button className="link-btn" onClick={() => navigate('/leads')}>View All</button>
-          </div>
-          {recentLeads.length === 0 ? (
-            <EmptyState icon="🧲" text="No leads yet." />
-          ) : (
-            <div className="recent-orders-list">
-              {recentLeads.map((l) => {
-                const meta = statusMeta(l.status)
-                return (
-                  <div key={l.id} className="recent-order-item" onClick={() => navigate(`/leads/${l.id}`)} style={{ cursor: 'pointer' }}>
-                    <div>
-                      <div className="recent-order-number">{l.lead_name}</div>
-                      <div className="recent-order-company">{l.company || '—'}</div>
-                    </div>
-                    <div className="recent-order-value">{new Date(l.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</div>
-                    <span className="status-badge" style={{ '--badge-color': meta.color }}>{meta.label}</span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="panel-card">
-          <div className="panel-head"><h3>City-wise Leads</h3></div>
-          {cityWise.length === 0 ? (
-            <EmptyState icon="🏙️" text="No city data yet." />
-          ) : (
-            <div className="mobile-card-table">
-              <table className="upcoming-table">
-                <thead><tr><th>City</th><th>Leads</th></tr></thead>
-                <tbody>
-                  {cityWise.map((c) => (
-                    <tr key={c.name}>
-                      <td data-label="City">{c.name}</td>
-                      <td data-label="Leads">{c.value}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="dash-row-2col">
-        <div className="panel-card">
-          <div className="panel-head"><h3>Business Snapshot</h3></div>
-          <div className="snapshot-grid">
-            <button className="snapshot-tile" onClick={() => navigate('/products')}>
-              <span className="snapshot-value"><AnimatedStat value={products.length} /></span>
-              <span className="snapshot-label">Active Products</span>
-            </button>
-            <button className="snapshot-tile" onClick={() => navigate('/customers')}>
-              <span className="snapshot-value"><AnimatedStat value={customerCount} /></span>
-              <span className="snapshot-label">Customers</span>
-            </button>
-            <button className="snapshot-tile" onClick={() => navigate('/orders')}>
-              <span className="snapshot-value"><AnimatedStat value={orders.length} /></span>
-              <span className="snapshot-label">Total Orders</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="panel-card">
-          <div className="panel-head">
-            <h3>Top Products by Leads</h3>
-            <button className="link-btn" onClick={() => navigate('/products')}>View All</button>
-          </div>
-          {topProducts.length === 0 ? (
-            <EmptyState icon="📦" text="No product-linked leads yet." />
-          ) : (
-            <ResponsiveContainer width="100%" height={190}>
-              <BarChart data={topProducts} layout="vertical" margin={{ left: 10, right: 16 }}>
-                <defs>
-                  <linearGradient id="topProductsFill" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#5B8DEF" />
-                    <stop offset="100%" stopColor="#3AA0FF" />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" horizontal={false} />
-                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} stroke="var(--text-secondary)" />
-                <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11 }} stroke="var(--text-secondary)" />
-                <Tooltip cursor={{ fill: 'var(--surface-muted)' }} />
-                <Bar dataKey="leads" name="Leads" fill="url(#topProductsFill)" radius={[0, 6, 6, 0]} barSize={16} animationDuration={800} animationEasing="ease-out" />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </div>
-
-      <div className="panel-card">
-        <div className="panel-head"><h3>Recent Activity</h3></div>
-        {activity.length === 0 ? (
-          <EmptyState icon="🕓" text="No recent activity." />
-        ) : (
-          <ul className="activity-list">
-            {activity.map((a, i) => (
-              <li key={i} className="activity-item">
-                <span className="activity-dot" />
-                <span className="activity-text">{a.text}</span>
-                <span className="activity-time">
-                  {new Date(a.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
+          </Panel>
+        </aside>
       </div>
 
       {showLeadForm && (
-        <LeadFormModal
-          users={users}
-          currentUserId={session?.user?.id}
-          onClose={() => setShowLeadForm(false)}
-          onSaved={() => { setShowLeadForm(false); loadDashboard() }}
-        />
+        <LeadFormModal users={users} currentUserId={session?.user?.id}
+          onClose={() => setShowLeadForm(false)} onSaved={() => { setShowLeadForm(false); loadDashboard() }} />
       )}
-
       {showOrderForm && (
-        <OrderFormModal
-          currentUserId={session?.user?.id}
-          onClose={() => setShowOrderForm(false)}
-          onSaved={() => { setShowOrderForm(false); loadDashboard() }}
-        />
+        <OrderFormModal currentUserId={session?.user?.id}
+          onClose={() => setShowOrderForm(false)} onSaved={() => { setShowOrderForm(false); loadDashboard() }} />
       )}
-
       {statModal && (
-        <StatDetailModal
-          title={statModal.title}
-          kind={statModal.kind}
-          items={statModal.items}
-          onClose={() => setStatModal(null)}
-        />
+        <StatDetailModal title={statModal.title} kind={statModal.kind} items={statModal.items} onClose={() => setStatModal(null)} />
       )}
     </div>
   )

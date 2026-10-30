@@ -48,3 +48,10 @@
   font-size: 12px;
   color: var(--text-secondary);
 }
+
+/* mint theme */
+.tasks-widget { background: linear-gradient(180deg,#F8FAFC,#F1F5F9); border-radius: 16px; box-shadow: var(--shadow-card); }
+.tasks-widget-title { font-size: 11px; letter-spacing: .08em; }
+.tasks-widget-item { padding: 8px 6px; }
+.tasks-widget-item:hover { background: #fff; box-shadow: var(--shadow-card); }
+.tasks-widget-value { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 1px 7px; min-width: 26px; text-align: center; }

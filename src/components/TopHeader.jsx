@@ -40,7 +40,7 @@ export default function TopHeader() {
         <img src={logo} alt="Wavexa Lead Generation" className="top-header-logo" />
         <div>
           <div className="top-header-title">Wavexa <span>Lead Generation</span></div>
-          <div className="top-header-tagline">Lead to Order · Track · Follow Up · Convert</div>
+          <div className="top-header-tagline">Lead to Order · Track · Convert</div>
         </div>
       </div>
 

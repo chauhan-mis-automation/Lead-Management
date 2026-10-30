@@ -488,3 +488,47 @@
     padding: 20px;
   }
 }
+
+/* ================= Mint soft-card theme ================= */
+.shell-sidebar {
+  width: 248px;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  padding: 20px 14px;
+  top: var(--header-height);
+  height: calc(100vh - var(--header-height));
+}
+.shell-nav-item {
+  position: relative;
+  padding: 11px 12px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 13.5px;
+}
+.shell-nav-icon { width: 20px; display: flex; align-items: center; justify-content: center; }
+.shell-nav-item:hover { background: var(--surface-muted); color: var(--text-primary); transform: translateX(3px); }
+.shell-nav-item.active {
+  background: linear-gradient(90deg, rgba(16,185,129,.16), rgba(16,185,129,.07));
+  color: var(--accent);
+  font-weight: 800;
+}
+.shell-nav-item.active::before {
+  content: ''; position: absolute; left: -14px; top: 9px; bottom: 9px; width: 4px;
+  border-radius: 0 4px 4px 0; background: var(--accent-bright);
+  animation: navBar .35s cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes navBar { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.shell-nav-item.active .shell-nav-icon { color: var(--accent-bright); }
+.shell-help-box { background: var(--accent-dim); border: 1px solid rgba(16,185,129,.25); }
+.shell-content { padding: 28px 32px 40px; max-width: 1680px; width: 100%; margin: 0 auto; }
+.shell-topbar-avatar, .shell-mobile-avatar { background: linear-gradient(135deg,#34D399,#059669); color:#fff; }
+.shell-mobile-account { background: var(--surface); }
+@media (max-width: 860px) {
+  .shell-sidebar { background: var(--surface); top: 0; height: 100vh; }
+  .shell-mobile-account { background: var(--surface); }
+  .shell-content { padding: 16px; }
+}
+@media (max-width: 860px) {
+  .shell-sidebar { box-shadow: none; }
+  .shell-sidebar.open { box-shadow: 12px 0 32px rgba(15, 23, 42, 0.18); }
+}

@@ -1,0 +1,152 @@
+/* ==========================================================================
+   Mint soft-card theme for all list / report pages.
+   Loaded LAST (end of App.jsx imports) so it overrides each page's own CSS.
+   Pure styling: no markup or logic depends on it.
+   ========================================================================== */
+
+/* ---------- page entrance (re-runs on every route change) ---------- */
+@keyframes mpRise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes mpRow { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
+@keyframes mpPop { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes mpSheen { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+body .shell-content > div:not(.dx):not(.cx) { animation: mpRise .5s cubic-bezier(.2,.8,.2,1) both; }
+
+/* ---------- page headers ---------- */
+body [class$="-header"] > div > h1,
+body [class$="-header"] > h1 {
+  font-family: var(--font-display);
+  font-size: 26px; font-weight: 800; letter-spacing: -0.02em; color: #1E293B;
+  position: relative; display: inline-block; padding-bottom: 8px; margin-bottom: 2px;
+}
+body [class$="-header"] > div > h1::after,
+body [class$="-header"] > h1::after {
+  content: ''; position: absolute; left: 0; bottom: 0; height: 4px; width: 46px; border-radius: 4px;
+  background: linear-gradient(90deg, #10B981, #6EE7B7); animation: mpBar .8s cubic-bezier(.2,.8,.2,1) both .2s;
+}
+@keyframes mpBar { from { width: 0; } to { width: 46px; } }
+body [class$="-filters"] .text-input:not(.search-input) { width: auto; }
+body [class$="-subtitle"] { color: #64748B; font-size: 14px; }
+
+/* ---------- buttons ---------- */
+body .btn-primary {
+  background: linear-gradient(135deg, #10B981, #059669); color: #fff; border: 0; border-radius: 12px;
+  font-weight: 800; box-shadow: 0 6px 16px rgba(5, 150, 105, .28);
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+body .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(5,150,105,.36); filter: brightness(1.04); }
+body .btn-primary:active:not(:disabled) { transform: translateY(0); }
+body .btn-ghost {
+  background: #fff; border: 1px solid #E2E8F0; color: #475569; border-radius: 12px; font-weight: 700;
+  transition: all .15s ease;
+}
+body .btn-ghost:hover { border-color: #10B981; color: #059669; background: rgba(16,185,129,.08); transform: translateY(-1px); }
+body .icon-btn {
+  border-radius: 10px; border: 1px solid #E2E8F0; background: #fff; color: #64748B; transition: all .15s ease;
+}
+body .icon-btn:hover { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.45); color: #059669; transform: translateY(-2px); }
+body .icon-btn.danger:hover { background: rgba(244,63,94,.1); border-color: rgba(244,63,94,.4); color: #E11D48; }
+
+/* ---------- inputs ---------- */
+body .text-input, body select.text-input {
+  background: #fff; border: 1px solid #E2E8F0; border-radius: 12px; color: #1E293B;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+body .text-input:focus, body .text-input:focus-visible { outline: none; border-color: #10B981; box-shadow: 0 0 0 4px rgba(16,185,129,.14); }
+body .search-input { background-color: #fff; }
+
+/* ---------- stat / summary cards (Orders, Customers, Reports) ---------- */
+body .orders-summary-item, body .customers-stat-card, body .stat-card {
+  position: relative; overflow: hidden; border-radius: 16px; border: 1px solid #E2E8F0;
+  background: linear-gradient(135deg, #ECFDF5 0%, #fff 70%); box-shadow: 0 1px 3px rgba(15,23,42,.05), 0 1px 2px rgba(15,23,42,.08);
+  animation: mpPop .55s cubic-bezier(.2,.8,.2,1) both; transition: transform .2s ease, box-shadow .2s ease;
+}
+body .orders-summary-item::after, body .customers-stat-card::after, body .stat-card::after {
+  content: ''; position: absolute; right: -26px; bottom: -30px; width: 96px; height: 96px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(16,185,129,.22), transparent 70%); transition: transform .4s ease; pointer-events: none;
+}
+body .orders-summary-item:hover, body .customers-stat-card:hover, body .stat-card:hover { transform: translateY(-4px); box-shadow: 0 14px 28px rgba(15,23,42,.1); }
+body .orders-summary-item:hover::after, body .customers-stat-card:hover::after, body .stat-card:hover::after { transform: scale(1.5); }
+body .orders-summary-item:nth-child(2), body .customers-stat-card:nth-child(2), body .stat-card:nth-child(2) { background: linear-gradient(135deg, #EEF2FF 0%, #fff 70%); animation-delay: .07s; }
+body .orders-summary-item:nth-child(3), body .customers-stat-card:nth-child(3), body .stat-card:nth-child(3) { background: linear-gradient(135deg, #FFFBEB 0%, #fff 70%); animation-delay: .14s; }
+body .orders-summary-item:nth-child(4), body .customers-stat-card:nth-child(4), body .stat-card:nth-child(4) { background: linear-gradient(135deg, #F0F9FF 0%, #fff 70%); animation-delay: .21s; }
+body .orders-summary-item:nth-child(5), body .stat-card:nth-child(5) { background: linear-gradient(135deg, #FFF1F2 0%, #fff 70%); animation-delay: .28s; }
+body .orders-summary-item:nth-child(6), body .stat-card:nth-child(6) { background: linear-gradient(135deg, #F0FDFA 0%, #fff 70%); animation-delay: .35s; }
+body .orders-summary-item.warn, body .customers-stat-card.warn, body .stat-card.warn { background: linear-gradient(135deg, #FFF1F2 0%, #fff 70%); border-color: rgba(244,63,94,.25); }
+body .orders-summary-item.warn::after, body .customers-stat-card.warn::after, body .stat-card.warn::after { background: radial-gradient(circle, rgba(244,63,94,.22), transparent 70%); }
+body .orders-summary-item.good, body .customers-stat-card.good, body .stat-card.good { background: linear-gradient(135deg, #ECFDF5 0%, #fff 70%); border-color: rgba(16,185,129,.3); }
+body .orders-summary-value, body .customers-stat-value {
+  font-family: var(--font-display); font-weight: 800; font-size: 26px; letter-spacing: -0.03em; color: #047857;
+}
+body .orders-summary-item.warn .orders-summary-value, body .customers-stat-card.warn .customers-stat-value { color: #E11D48; }
+body .orders-summary-label, body .customers-stat-label {
+  font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: #64748B;
+}
+
+/* ---------- table containers ---------- */
+body [class$="-table-wrap"], body .rh-scroll-table {
+  border-radius: 18px; border: 1px solid #E2E8F0; background: #fff;
+  box-shadow: 0 1px 3px rgba(15,23,42,.05), 0 8px 24px rgba(15,23,42,.05);
+}
+body .panel-card {
+  border-radius: 18px; border: 1px solid #E2E8F0; box-shadow: 0 1px 3px rgba(15,23,42,.05), 0 1px 2px rgba(15,23,42,.08);
+  transition: box-shadow .25s ease, transform .25s ease;
+}
+body .panel-card:hover { box-shadow: 0 10px 26px rgba(15,23,42,.08); }
+
+/* ---------- coloured table header ---------- */
+body table[class$="-table"] thead tr {
+  background: linear-gradient(90deg, #047857 0%, #10B981 60%, #34D399 100%);
+}
+body table[class$="-table"] th {
+  background: transparent; color: #fff; font-weight: 800; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase;
+  border-bottom: 0; padding: 15px 16px;
+}
+
+/* ---------- rows ---------- */
+body table[class$="-table"] td { border-bottom: 1px solid #F1F5F9; padding: 15px 16px; color: #1E293B; }
+body table[class$="-table"] tbody tr { transition: background .15s ease, box-shadow .15s ease; animation: mpRow .45s cubic-bezier(.2,.8,.2,1) both; }
+body table[class$="-table"] tbody tr:nth-child(1) { animation-delay: .04s; }
+body table[class$="-table"] tbody tr:nth-child(2) { animation-delay: .08s; }
+body table[class$="-table"] tbody tr:nth-child(3) { animation-delay: .12s; }
+body table[class$="-table"] tbody tr:nth-child(4) { animation-delay: .16s; }
+body table[class$="-table"] tbody tr:nth-child(5) { animation-delay: .20s; }
+body table[class$="-table"] tbody tr:nth-child(6) { animation-delay: .24s; }
+body table[class$="-table"] tbody tr:nth-child(7) { animation-delay: .28s; }
+body table[class$="-table"] tbody tr:nth-child(8) { animation-delay: .32s; }
+body table[class$="-table"] tbody tr:nth-child(n+9) { animation-delay: .36s; }
+body table[class$="-table"] tbody tr:nth-child(even) { background: #FAFCFB; }
+body table[class$="-table"] tbody tr:hover { background: #ECFDF5; box-shadow: inset 4px 0 0 #10B981; }
+body .order-expand-row td, body .expand-row td, body .quote-expand-row td { background: #F0FDF9; }
+body .order-number-cell, body .quote-number-cell { color: #059669; font-weight: 800; }
+body .customer-name-cell, body .lead-name-cell, body .product-name-cell, body .user-name-cell { font-weight: 700; color: #1E293B; }
+body .expand-arrow.open { color: #10B981; }
+
+/* ---------- badges (soft pastel pills) ---------- */
+body .status-badge {
+  background: color-mix(in srgb, var(--badge-color) 13%, #fff);
+  color: color-mix(in srgb, var(--badge-color) 82%, #000);
+  border: 0; border-radius: 999px; font-weight: 700; padding: 4px 11px;
+}
+body .role-badge, body .priority-badge { border-radius: 999px; font-weight: 700; }
+
+/* ---------- empty states ---------- */
+body [class$="-empty-state"] {
+  border-radius: 18px; border: 2px dashed #A7F3D0; background: linear-gradient(135deg, #F0FDF9, #fff);
+}
+
+/* ---------- Reports Hub tabs -> pills ---------- */
+body .rh-tabbar { border-bottom: 0; background: #F1F5F9; padding: 5px; border-radius: 14px; display: inline-flex; gap: 4px; }
+body .rh-tab { border: 0; border-radius: 10px; padding: 9px 16px; transition: all .2s ease; }
+body .rh-tab:hover { color: #059669; background: rgba(16,185,129,.08); }
+body .rh-tab.active { background: #fff; color: #059669; box-shadow: 0 2px 8px rgba(15,23,42,.1); border: 0; }
+
+/* ---------- modals ---------- */
+body .modal-card { border-radius: 22px; box-shadow: 0 30px 70px rgba(15,23,42,.28); animation: mpPop .3s cubic-bezier(.2,.8,.2,1) both; }
+body .modal-backdrop { backdrop-filter: blur(3px); }
+
+/* ---------- mobile: keep card layout, tint it ---------- */
+@media (max-width: 860px) {
+  body .mobile-card-table tr { border-radius: 16px; border-color: #E2E8F0; animation: mpRow .45s ease both; }
+  body .mobile-card-table tr:hover { background: #ECFDF5; box-shadow: none; }
+}

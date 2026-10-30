@@ -11,6 +11,18 @@ export default function GlobalSearch() {
   const [open, setOpen] = useState(false)
   const wrapRef = useRef(null)
   const debounceRef = useRef(null)
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    function onKey(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        inputRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   useEffect(() => {
     function onClick(e) {
@@ -93,11 +105,13 @@ export default function GlobalSearch() {
       <form className="top-header-search" onSubmit={handleSubmit}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8"/><path d="M20 20L16.5 16.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
         <input
+          ref={inputRef}
           placeholder="Search leads, orders, customers, quotations…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => { if (results) setOpen(true) }}
         />
+        <kbd className="search-kbd">Ctrl K</kbd>
       </form>
 
       {open && query.trim().length >= 2 && (

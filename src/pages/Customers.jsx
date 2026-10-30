@@ -77,7 +77,7 @@ export default function Customers() {
 
     const body = `
       <div class="print-meta-grid">
-        <div><span>Company</span><strong>${c.company_name || '—'}</strong></div>
+        <div><span>Company</span><strong>${c.company_name || c.contact_name || '—'}</strong></div>
         <div><span>Contact</span><strong>${c.contact_name || '—'}</strong></div>
         <div><span>Mobile</span><strong>${c.mobile || '—'}</strong></div>
         <div><span>Email</span><strong>${c.email || '—'}</strong></div>
@@ -100,7 +100,7 @@ export default function Customers() {
       ` : ''}
     `
 
-    printRecord(`Customer ${c.company_name || ''}`, body, { docName: 'Customer Profile', docNumber: '' })
+    printRecord(`Customer ${c.company_name || c.contact_name || ''}`, body, { docName: 'Customer Profile', docNumber: '' })
   }
 
   const allRows = customers.map((c) => {
@@ -215,7 +215,7 @@ export default function Customers() {
                     <td className="expand-cell">
                       <span className={'expand-arrow' + (expandedId === c.id ? ' open' : '')}>›</span>
                     </td>
-                    <td className="customer-name-cell" data-label="Company">{c.company_name || '—'}</td>
+                    <td className="customer-name-cell" data-label="Company">{c.company_name || c.contact_name || '—'}</td>
                     <td data-label="Contact">
                       <div>{c.contact_name || '—'}</div>
                       {(c.mobile || c.email) && (

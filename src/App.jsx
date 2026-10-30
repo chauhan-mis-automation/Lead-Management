@@ -15,6 +15,7 @@ import Quotations from './pages/Quotations'
 import Products from './pages/Products'
 import Users from './pages/Users'
 import AppShell from './components/AppShell'
+import './styles/mint-pages.css'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
